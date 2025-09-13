@@ -1,0 +1,103 @@
+<script>
+	import { supabase } from '$lib/supabaseClient';
+	import { onMount } from 'svelte';
+	import Authentication from '$lib/components/Authentication.svelte';
+	import { range, months } from '$lib/helpers';
+	import DayView from '$lib/components/DayView.svelte';
+	import MonthView from '$lib/components/MonthView.svelte';
+	import YearView from '$lib/components/YearView.svelte';
+
+	// View state
+	let level = $state('day');
+	let selectedDate = $state(new Date().toISOString().split('T')[0]); // today as default
+	let selectedPeriod = $state('');
+
+	// Auth state
+	let session = $state(null);
+
+	const fetchSession = async () => {
+		const { data } = await supabase.auth.getSession();
+		session = data.session;
+	};
+
+	// Listen for auth changes
+	onMount(() => {
+		fetchSession();
+		supabase.auth.onAuthStateChange((_event, currentSession) => {
+			session = currentSession;
+		});
+	});
+
+	// logout
+	async function logout() {
+		await supabase.auth.signOut();
+		session = null;
+	}
+</script>
+
+<main class="p-4 flex flex-col h-screen">
+	{#if !session}
+		<Authentication />
+	{:else}
+		<!-- Navbar -->
+		<div class="flex justify-between items-center mb-4">
+			<h2 class="text-xl font-bold">Khoroch</h2>
+			<button onclick={logout} class="bg-gray-300 px-3 py-1 rounded"> Logout </button>
+		</div>
+
+		<!-- view select -->
+		<div class="mb-4">
+			<select bind:value={level} class="p-2 border rounded">
+				<option value="day">Day</option>
+				<option value="month">Month</option>
+				<option value="year">Year</option>
+			</select>
+		</div>
+
+		<!-- date/period select -->
+		<div class="flex gap-2 overflow-x-auto mb-4">
+			{#if level === 'day'}
+				<div class="px-3 py-1">
+					<label for="datepicker">Date: </label>
+					<input type="date" id="datepicker" bind:value={selectedDate} />
+				</div>
+			{:else if level === 'month'}
+				{#each months as m}
+					<button
+						class="px-3 py-1 rounded border whitespace-nowrap {selectedPeriod === m
+							? 'bg-blue-500 text-white'
+							: ''}"
+						onclick={() => (selectedPeriod = m)}
+					>
+						{m}
+					</button>
+				{/each}
+			{:else if level === 'year'}
+				{#each range(2000, 2050, 1) as y}
+					<button
+						class="px-3 py-1 rounded border whitespace-nowrap {selectedPeriod === y
+							? 'bg-blue-500 text-white'
+							: ''}"
+						onclick={() => (selectedPeriod = y)}
+					>
+						{y}
+					</button>
+				{/each}
+			{/if}
+		</div>
+
+		{#if level === 'day'}
+			<DayView {selectedDate} />
+		{:else if level === 'month'}
+			<MonthView {selectedPeriod} />
+		{:else if level === 'year'}
+			<YearView {selectedPeriod} />
+		{/if}
+	{/if}
+</main>
+
+<style>
+	main {
+		font-family: sans-serif;
+	}
+</style>
