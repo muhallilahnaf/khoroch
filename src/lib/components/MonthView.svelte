@@ -29,8 +29,8 @@
 		let totalIncome = 0;
 		let totalExpense = 0;
 		transactions.forEach((e) => {
-			if (e.type === 'income') totalIncome = totalIncome + e.value;
-			if (e.type === 'expense') totalExpense = totalExpense + e.value;
+			if (e.type === 'income') totalIncome = totalIncome + e.total;
+			if (e.type === 'expense') totalExpense = totalExpense + e.total;
 		});
 		monthlyIncome = totalIncome;
 		monthlyExpense = totalExpense;
@@ -56,22 +56,20 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Text</th>
-                            <th>Value</th>
+                            <th class="p-1">Date</th>
+                            <th class="p-1">Type</th>
+                            <th class="p-1">Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         {#each transactions as t}
                         <tr>
-                            <td>{t.date}</td>
-                            <td>{t.type}</td>
-                            <td>{t.text}</td>
+                            <td class="p-1">{t.day}</td>
+                            <td class="p-1">{t.type}</td>
                             <td 
-                                class={t.type === 'income' ? 'text-green-600' : 'text-red-600'}
+                                class={t.type === 'income' ? 'text-green-600 p-1' : 'text-red-600 p-1'}
                             >
-                                {t.value}
+                                {t.total}
                             </td>
                         </tr>
                         {/each}

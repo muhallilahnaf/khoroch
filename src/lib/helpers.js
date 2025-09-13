@@ -17,4 +17,18 @@ export const months = [
     'Oct', 
     'Nov', 
     'Dec'
-]
+];
+
+export const days = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday'
+];
+
+export const getDayName = (dateStr) => days[new Date(dateStr).getDay()];
+
+export const getDateString = (dateObj) => dateObj.toISOString().split('T')[0];

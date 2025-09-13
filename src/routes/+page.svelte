@@ -2,14 +2,15 @@
 	import { supabase } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
 	import Authentication from '$lib/components/Authentication.svelte';
-	import { range, months } from '$lib/helpers';
+	import { range, months, getDateString, getDayName } from '$lib/helpers';
 	import DayView from '$lib/components/DayView.svelte';
 	import MonthView from '$lib/components/MonthView.svelte';
 	import YearView from '$lib/components/YearView.svelte';
 
 	// View state
 	let level = $state('day');
-	let selectedDate = $state(new Date().toISOString().split('T')[0]); // today as default
+	let selectedDate = $state(getDateString(new Date())); // today as default
+	let day = $derived(getDayName(selectedDate));
 	let selectedPeriod = $state('');
 
 	// Auth state
@@ -32,6 +33,19 @@
 	async function logout() {
 		await supabase.auth.signOut();
 		session = null;
+	}
+
+	// go to previous or next date
+	const gotoPrevNextDay = (direction) => {
+		const date = new Date(selectedDate);
+		const targetDate = new Date(selectedDate);
+		if (direction === 'prev') {
+			targetDate.setDate(date.getDate() - 1)
+		}
+		if (direction === 'next') {
+			targetDate.setDate(date.getDate() + 1)
+		}
+		selectedDate = getDateString(targetDate);
 	}
 </script>
 
@@ -57,9 +71,17 @@
 		<!-- date/period select -->
 		<div class="flex gap-2 overflow-x-auto mb-4">
 			{#if level === 'day'}
-				<div class="px-3 py-1">
-					<label for="datepicker">Date: </label>
-					<input type="date" id="datepicker" bind:value={selectedDate} />
+				<div class="px-3 py-1 b-1 flex justify-between">
+					<div>
+						<button type="button" class="p-1" onclick={() => gotoPrevNextDay('prev')}>«</button>
+					</div>
+					<div>
+						<label for="datepicker">{day}</label>
+						<input type="date" id="datepicker" bind:value={selectedDate} />
+					</div>
+					<div>
+						<button type="button" class="p-1" onclick={() => gotoPrevNextDay('next')}>»</button>
+					</div>
 				</div>
 			{:else if level === 'month'}
 				{#each months as m}

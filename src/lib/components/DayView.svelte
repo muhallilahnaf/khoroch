@@ -9,9 +9,9 @@
 	let dailyIncome = $state(0);
 	let dailyExpense = $state(0);
 	let transactions = $state([]);
-	let type = $state('expense');
-	let text = $state('');
-	let value = $state('');
+	let tr_type = $state('expense');
+	let description = $state('');
+	let amount = $state('');
 
 	// load transactions
 	async function loadTransactionsByDate(date) {
@@ -39,14 +39,14 @@
 		let totalIncome = 0;
 		let totalExpense = 0;
 		transactions.forEach((e) => {
-			if (e.type === 'income') totalIncome = totalIncome + e.value;
-			if (e.type === 'expense') totalExpense = totalExpense + e.value;
+			if (e.tr_type === 'income') totalIncome = totalIncome + e.amount;
+			if (e.tr_type === 'expense') totalExpense = totalExpense + e.amount;
 		});
 		dailyIncome = totalIncome;
 		dailyExpense = totalExpense;
 	};
 
-    	// update when date changes
+    // update when date changes
 	$effect(async () => {
 		await loadTransactionsByDate(selectedDate);
         updateDailyTotals();
@@ -55,17 +55,17 @@
 	// add a new transaction to db and update state
 	async function addTransaction(e) {
 		e.preventDefault();
-		if (!text || !value) return;        
+		if (!description || !amount) return;        
 		
 		const { data, error } = await supabase
 			.from('transactions')
-			.insert([{ type, text, value, date: selectedDate, user_id }])
+			.insert([{ tr_type, description, amount, date: selectedDate, user_id }])
 			.select();
 
 		if (!error && data) {
 			transactions = [data[0], ...transactions];
-			text = '';
-			value = '';
+			description = '';
+			amount = '';
 		}
 
         if (error) console.log(error);
@@ -99,11 +99,11 @@
 		{#each transactions as t}
 			<div class="p-1 border-b flex justify-between">
                 <div>
-                    <span>{t.type === 'income' ? '+' : '-'} {t.text}</span>
+                    <span>{t.tr_type === 'income' ? '+' : '-'} {t.description}</span>
                 </div>
                 <div>
-                    <span class={t.type === 'income' ? 'text-green-600' : 'text-red-600'}>
-                        {t.value}
+                    <span class={t.tr_type === 'income' ? 'text-green-600' : 'text-red-600'}>
+                        {t.amount}
                     </span>
                     <button type="button" onclick={() => deleteTransaction(t.id)}>Delete</button>
                 </div>
@@ -116,11 +116,11 @@
 
 <!-- Input Form -->
 <form class="p-4 border-t flex flex-col gap-2" onsubmit={addTransaction}>
-	<select bind:value={type} class="p-1 border rounded">
+	<select bind:value={tr_type} class="p-1 border rounded">
 		<option value="income">Income</option>
 		<option value="expense">Expense</option>
 	</select>
-	<input placeholder="description" bind:value={text} class="p-1 border rounded" />
-	<input type="number" placeholder="Value" bind:value class="p-1 border rounded" />
+	<input placeholder="description" bind:value={description} class="p-1 border rounded" />
+	<input type="number" placeholder="amount" bind:value={amount} class="p-1 border rounded" />
 	<button type="submit" class="bg-blue-500 text-white p-1 rounded"> Add </button>
 </form>
