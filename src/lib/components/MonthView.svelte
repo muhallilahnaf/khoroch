@@ -1,8 +1,6 @@
 <script>
-	import { supabase } from '$lib/supabaseClient';
+	import { supabase, loadTransactionsByMonth } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
-    import { months } from '$lib/helpers';
-    import { getTransactionsByMonth } from '$lib/aggregations';
 
 	let { selectedPeriod } = $props();
 
@@ -12,16 +10,11 @@
 	let monthlyExpense = $state(0);
 	let transactions = $state([]);
 
-	// load transactions
-	async function loadTransactionsByMonth(month) {
-        const monthNumber = months.indexOf(month) + 1;
-		const data = await getTransactionsByMonth(monthNumber);
-        transactions = [...data];
-	}
+	
 
 	// load transactions on first load
 	onMount(async () => {
-		await loadTransactionsByMonth(selectedPeriod);
+		transactions = await loadTransactionsByMonth(selectedPeriod);
 	});
 
 	// update monthly totals when transaction changes
@@ -38,7 +31,7 @@
 
     // update when date changes
 	$effect(async () => {
-		await loadTransactionsByMonth(selectedPeriod);
+		transactions = await loadTransactionsByMonth(selectedPeriod);
         updateMonthlyTotals();
 	});
 </script>

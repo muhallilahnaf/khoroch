@@ -1,37 +1,34 @@
 <script>
-	import { supabase } from '$lib/supabaseClient';
+	import { 
+		getUserId, 
+		loadCategories, 
+		supabase, 
+		loadTransactionsByDate,
+		loadDescriptions
+	} from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
 
 	let { selectedDate } = $props();
 
 	// states
-    let user_id = $state(null);
+	let user_id = $state(null);
 	let dailyIncome = $state(0);
 	let dailyExpense = $state(0);
 	let transactions = $state([]);
 	let tr_type = $state('expense');
 	let description = $state('');
 	let amount = $state('');
+	let category = $state('');
 
-	// load transactions
-	async function loadTransactionsByDate(date) {
-		const { data, error } = await supabase
-			.from('transactions')
-			.select('*')
-			.eq('date', date)
-			.order('created_at', { ascending: true });
-		if (!error && data) {
-			transactions = data;
-		}
-
-        if (error) console.log(error);
-	}
+	let categories = [];
+	let autocompleteData = [];
 
 	// load transactions and userid on first load
 	onMount(async () => {
-		await loadTransactionsByDate(selectedDate);
-        const { data: user } = await supabase.auth.getUser();
-		user_id = user?.user?.id;
+		transactions = await loadTransactionsByDate(selectedDate);
+		user_id = await getUserId();
+		categories = await loadCategories();
+		autocompleteData = await loadDescriptions();
 	});
 
 	// update daily totals when transaction changes
@@ -46,43 +43,41 @@
 		dailyExpense = totalExpense;
 	};
 
-    // update when date changes
+	// update when date changes
 	$effect(async () => {
-		await loadTransactionsByDate(selectedDate);
-        updateDailyTotals();
+		transactions = await loadTransactionsByDate(selectedDate);
+		updateDailyTotals();
 	});
 
 	// add a new transaction to db and update state
-	async function addTransaction(e) {
+	const addTransaction = async (e) => {
 		e.preventDefault();
-		if (!description || !amount) return;        
-		
+		if (!description || !amount) return;
 		const { data, error } = await supabase
 			.from('transactions')
-			.insert([{ tr_type, description, amount, date: selectedDate, user_id }])
+			.insert([{ tr_type, category, description, amount, date: selectedDate, user_id }])
 			.select();
-
 		if (!error && data) {
 			transactions = [data[0], ...transactions];
 			description = '';
 			amount = '';
 		}
+		if (error) console.log(error);
+	};
 
-        if (error) console.log(error);
-	}
-
-    // delete a transaction from db and update state
-	async function deleteTransaction(id) {        
-		const { error } = await supabase
-			.from('transactions')
-			.delete()
-            .eq('id', id);
-
+	// delete a transaction from db and update state
+	const deleteTransaction = async (id) => {
+		const { error } = await supabase.from('transactions').delete().eq('id', id);
 		if (!error) {
-			transactions = transactions.filter(t => t.id !== id);
-		}        
+			transactions = transactions.filter((t) => t.id !== id);
+		}
+		if (error) console.log(error);
+	};
 
-        if (error) console.log(error);
+	// autocomplete description and category
+	const autocomplete = () => {
+		const matches = autocompleteData.filter(item => item.description.includes(description));
+		console.log(matches);
 	}
 </script>
 
@@ -98,15 +93,15 @@
 	{#if transactions.length > 0}
 		{#each transactions as t}
 			<div class="p-1 border-b flex justify-between">
-                <div>
-                    <span>{t.tr_type === 'income' ? '+' : '-'} {t.description}</span>
-                </div>
-                <div>
-                    <span class={t.tr_type === 'income' ? 'text-green-600' : 'text-red-600'}>
-                        {t.amount}
-                    </span>
-                    <button type="button" onclick={() => deleteTransaction(t.id)}>Delete</button>
-                </div>
+				<div>
+					<span>{t.tr_type === 'income' ? '+' : '-'} {t.description}</span>
+				</div>
+				<div>
+					<span class={t.tr_type === 'income' ? 'text-green-600' : 'text-red-600'}>
+						{t.amount}
+					</span>
+					<button type="button" onclick={() => deleteTransaction(t.id)}>Delete</button>
+				</div>
 			</div>
 		{/each}
 	{:else}
@@ -116,11 +111,16 @@
 
 <!-- Input Form -->
 <form class="p-4 border-t flex flex-col gap-2" onsubmit={addTransaction}>
+	<select bind:value={category} class="p-1 border rounded">
+		{#each categories as c}
+			<option value={c.category_name}>{c.category_name}</option>
+		{/each}
+	</select>
 	<select bind:value={tr_type} class="p-1 border rounded">
 		<option value="income">Income</option>
 		<option value="expense">Expense</option>
 	</select>
-	<input placeholder="description" bind:value={description} class="p-1 border rounded" />
+	<input placeholder="description" bind:value={description} onchange={autocomplete} class="p-1 border rounded" />
 	<input type="number" placeholder="amount" bind:value={amount} class="p-1 border rounded" />
 	<button type="submit" class="bg-blue-500 text-white p-1 rounded"> Add </button>
 </form>

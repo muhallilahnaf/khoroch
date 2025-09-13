@@ -1,5 +1,5 @@
 <script>
-	import { supabase } from '$lib/supabaseClient';
+	import { supabase, fetchSession } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
 	import Authentication from '$lib/components/Authentication.svelte';
 	import { range, months, getDateString, getDayName } from '$lib/helpers';
@@ -16,14 +16,9 @@
 	// Auth state
 	let session = $state(null);
 
-	const fetchSession = async () => {
-		const { data } = await supabase.auth.getSession();
-		session = data.session;
-	};
-
 	// Listen for auth changes
-	onMount(() => {
-		fetchSession();
+	onMount(async() => {
+		session = await fetchSession();
 		supabase.auth.onAuthStateChange((_event, currentSession) => {
 			session = currentSession;
 		});
@@ -55,7 +50,9 @@
 	{:else}
 		<!-- Navbar -->
 		<div class="flex justify-between items-center mb-4">
-			<h2 class="text-xl font-bold">Khoroch</h2>
+			<a href="/" class="text-xl font-bold">Khoroch</a>
+			<a href="/categories" class="bg-gray-300 px-3 py-1 rounded"> Categories </a>
+			<a href="/recurring" class="bg-gray-300 px-3 py-1 rounded"> Recurring transactions </a>
 			<button onclick={logout} class="bg-gray-300 px-3 py-1 rounded"> Logout </button>
 		</div>
 
