@@ -26,8 +26,7 @@ export const getUserId = async () => {
 export const loadCategories = async () => {
   const { data, error } = await supabase
     .from('categories')
-    .select('*')
-    .order('created_at', { ascending: true });
+    .select('*');
   if (!error && data) return data
   if (error) console.log(error);
 };
@@ -54,7 +53,7 @@ export const loadTransactionsByMonth = async (month) => {
 export const loadDescriptions = async () => {
   const { data, error } = await supabase
     .from('transactions')
-    .select('category, description');
+    .select('category_id, description');
   if (!error && data) {
     let descriptions = [];
     let finalData = [];
@@ -62,7 +61,7 @@ export const loadDescriptions = async () => {
       if (!descriptions.includes(row.description)) {
         descriptions.push(row.description);
         finalData.push({
-          category: row.category,
+          category_id: row.category_id,
           description: row.description,
         });
       }

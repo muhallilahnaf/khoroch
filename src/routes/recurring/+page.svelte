@@ -40,7 +40,7 @@
 	// add a new recurring transaction to db and update state
 	async function addRecurringTransaction(e) {
 		e.preventDefault();
-		if (!description || !amount || !date) return;
+		if (!description || !amount || !dayOfMonth) return;
 
 		const { data, error } = await supabase
 			.from('recurring_transactions')

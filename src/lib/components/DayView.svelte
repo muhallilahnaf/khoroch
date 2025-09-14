@@ -1,8 +1,8 @@
 <script>
-	import { 
-		getUserId, 
-		loadCategories, 
-		supabase, 
+	import {
+		getUserId,
+		loadCategories,
+		supabase,
 		loadTransactionsByDate,
 		loadDescriptions
 	} from '$lib/supabaseClient';
@@ -18,10 +18,11 @@
 	let tr_type = $state('expense');
 	let description = $state('');
 	let amount = $state('');
-	let category = $state('');
-
-	let categories = [];
-	let autocompleteData = [];
+	let category_id = $state('');
+	let matches = $state([]);
+	let selectedMatch = $state('');
+	let categories = $state([]);
+	let autocompleteData = $state([]);
 
 	// load transactions and userid on first load
 	onMount(async () => {
@@ -29,6 +30,8 @@
 		user_id = await getUserId();
 		categories = await loadCategories();
 		autocompleteData = await loadDescriptions();
+		console.log(categories);
+		console.log(autocompleteData);
 	});
 
 	// update daily totals when transaction changes
@@ -49,13 +52,24 @@
 		updateDailyTotals();
 	});
 
+	// update when selected match changes
+	$effect(() => {
+		if (selectedMatch && selectedMatch !== '') {
+			const match = autocompleteData.find((item) => item.category_id === selectedMatch);
+			category_id = match.category_id;
+			description = match.description;
+		}
+	});
+
 	// add a new transaction to db and update state
 	const addTransaction = async (e) => {
 		e.preventDefault();
+		console.log(category_id);
+		
 		if (!description || !amount) return;
 		const { data, error } = await supabase
 			.from('transactions')
-			.insert([{ tr_type, category, description, amount, date: selectedDate, user_id }])
+			.insert([{ tr_type, category_id, description, amount, date: selectedDate, user_id }])
 			.select();
 		if (!error && data) {
 			transactions = [data[0], ...transactions];
@@ -63,6 +77,7 @@
 			amount = '';
 		}
 		if (error) console.log(error);
+		updateDailyTotals();
 	};
 
 	// delete a transaction from db and update state
@@ -72,13 +87,15 @@
 			transactions = transactions.filter((t) => t.id !== id);
 		}
 		if (error) console.log(error);
+		updateDailyTotals();
 	};
 
 	// autocomplete description and category
 	const autocomplete = () => {
-		const matches = autocompleteData.filter(item => item.description.includes(description));
+		console.log('autocomplete');
+		matches = autocompleteData.filter((item) => item.description.includes(description));
 		console.log(matches);
-	}
+	};
 </script>
 
 <!-- daily totals -->
@@ -111,16 +128,26 @@
 
 <!-- Input Form -->
 <form class="p-4 border-t flex flex-col gap-2" onsubmit={addTransaction}>
-	<select bind:value={category} class="p-1 border rounded">
+	<select bind:value={category_id} class="p-1 border rounded">
 		{#each categories as c}
-			<option value={c.category_name}>{c.category_name}</option>
+			<option value={c.category_id}>{c.category_name}</option>
 		{/each}
 	</select>
 	<select bind:value={tr_type} class="p-1 border rounded">
 		<option value="income">Income</option>
 		<option value="expense">Expense</option>
 	</select>
-	<input placeholder="description" bind:value={description} onchange={autocomplete} class="p-1 border rounded" />
+	<input
+		placeholder="description"
+		bind:value={description}
+		oninput={autocomplete}
+		class="p-1 border rounded"
+	/>
+	<select bind:value={selectedMatch} class="p-1 border rounded">
+		{#each matches as m}
+			<option value={m.category_id}>{m.description}</option>
+		{/each}
+	</select>	
 	<input type="number" placeholder="amount" bind:value={amount} class="p-1 border rounded" />
 	<button type="submit" class="bg-blue-500 text-white p-1 rounded"> Add </button>
 </form>
