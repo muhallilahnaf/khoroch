@@ -7,6 +7,8 @@
 		loadDescriptions
 	} from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
+	import AutoComplete from "simple-svelte-autocomplete";
+
 
 	let { selectedDate } = $props();
 
@@ -54,22 +56,26 @@
 
 	// update when selected match changes
 	$effect(() => {
-		if (selectedMatch && selectedMatch !== '') {
-			const match = autocompleteData.find((item) => item.category_id === selectedMatch);
-			category_id = match.category_id;
-			description = match.description;
+		if (selectedMatch.description && selectedMatch.description !== '') {
+			category_id = selectedMatch.category_id;
+			description = selectedMatch.description;
 		}
 	});
 
 	// add a new transaction to db and update state
 	const addTransaction = async (e) => {
-		e.preventDefault();
-		console.log(category_id);
-		
-		if (!description || !amount) return;
+		e.preventDefault();		
+		if (!description || !amount) return;		
 		const { data, error } = await supabase
 			.from('transactions')
-			.insert([{ tr_type, category_id, description, amount, date: selectedDate, user_id }])
+			.insert([{ 
+				tr_type, 
+				category_id, 
+				description, 
+				amount, 
+				date: selectedDate, 
+				user_id 
+			}])
 			.select();
 		if (!error && data) {
 			transactions = [data[0], ...transactions];
@@ -137,17 +143,7 @@
 		<option value="income">Income</option>
 		<option value="expense">Expense</option>
 	</select>
-	<input
-		placeholder="description"
-		bind:value={description}
-		oninput={autocomplete}
-		class="p-1 border rounded"
-	/>
-	<select bind:value={selectedMatch} class="p-1 border rounded">
-		{#each matches as m}
-			<option value={m.category_id}>{m.description}</option>
-		{/each}
-	</select>	
+	<AutoComplete items={autocompleteData} bind:selectedItem={selectedMatch} labelFieldName="description" />
 	<input type="number" placeholder="amount" bind:value={amount} class="p-1 border rounded" />
 	<button type="submit" class="bg-blue-500 text-white p-1 rounded"> Add </button>
 </form>
