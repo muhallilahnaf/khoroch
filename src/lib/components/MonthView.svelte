@@ -1,74 +1,83 @@
 <script>
 	import { supabase, loadTransactionsByMonth } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
+	import { Table } from '@sveltestrap/sveltestrap';
 
-	let { selectedPeriod } = $props();
+	let { selectedMonth } = $props();
 
 	// states
-    let user_id = $state(null);
+	let user_id = $state(null);
 	let monthlyIncome = $state(0);
 	let monthlyExpense = $state(0);
+	let monthlyRemaining = $state(0);
+	let monthlyAvgExpense = $state('0');
 	let transactions = $state([]);
-
-	
 
 	// load transactions on first load
 	onMount(async () => {
-		transactions = await loadTransactionsByMonth(selectedPeriod);
+		transactions = await loadTransactionsByMonth(selectedMonth);
 	});
 
 	// update monthly totals when transaction changes
 	const updateMonthlyTotals = () => {
 		let totalIncome = 0;
 		let totalExpense = 0;
-		transactions.forEach((e) => {
-			if (e.type === 'income') totalIncome = totalIncome + e.total;
-			if (e.type === 'expense') totalExpense = totalExpense + e.total;
+		let expenseCount = 0;
+		transactions.forEach((t) => {
+			if (t.type === 'income') totalIncome = totalIncome + t.total;
+			if (t.type === 'expense') {
+				totalExpense = totalExpense + t.total;
+				expenseCount = expenseCount + 1;
+			}
 		});
 		monthlyIncome = totalIncome;
 		monthlyExpense = totalExpense;
+		monthlyRemaining = monthlyIncome - monthlyExpense;
+		monthlyAvgExpense = (expenseCount !== 0) ? (totalExpense / expenseCount).toFixed(0) : '0';		
 	};
 
-    // update when date changes
+	// update when date changes
 	$effect(async () => {
-		transactions = await loadTransactionsByMonth(selectedPeriod);
-        updateMonthlyTotals();
+		transactions = await loadTransactionsByMonth(selectedMonth);
+		updateMonthlyTotals();
 	});
 </script>
 
 <!-- monthly totals -->
-<div class="p-4 border rounded mb-4">
-	<h3 class="font-bold">This Month's Totals</h3>
-	<p>Income: <span class="text-green-600">{monthlyIncome}</span></p>
-	<p>Expense: <span class="text-red-600">{monthlyExpense}</span></p>
+<div class="mb-4 p-2 border">
+	<p class="lead">This Month's Totals</p>
+	<div class="hstack gap-3">
+		<p class="m-0">Income: <span class="text-success">{monthlyIncome}</span></p>
+		<p class="m-0">Expense: <span class="text-danger">{monthlyExpense}</span></p>
+		<p class="m-0">Remaining: <span class="text-info">{monthlyRemaining}</span></p>
+		<p class="m-0">Avg Expense: <span class="text-info">{monthlyAvgExpense}</span></p>
+	</div>
 </div>
 
 <!-- Transactions List -->
-<div class="flex-1 overflow-y-auto mb-4">
+<div class="overflow-y-auto mb-4">
 	{#if transactions.length > 0}
-                <table>
-                    <thead>
-                        <tr>
-                            <th class="p-1">Date</th>
-                            <th class="p-1">Type</th>
-                            <th class="p-1">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {#each transactions as t}
-                        <tr>
-                            <td class="p-1">{t.day}</td>
-                            <td class="p-1">{t.type}</td>
-                            <td 
-                                class={t.type === 'income' ? 'text-green-600 p-1' : 'text-red-600 p-1'}
-                            >
-                                {t.total}
-                            </td>
-                        </tr>
-                        {/each}
-                    </tbody>
-                </table>		
+		<Table borderless size="sm">
+			<thead>
+				<tr>
+					<th>Date</th>
+					<th>Type</th>
+					<th>Total</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each transactions as t}
+					<tr>
+						<td>{t.day}</td>
+						<td>{t.type}</td>
+						<td class={t.type === 'income' ? 'text-success' : 'text-danger'}>
+							{t.total}
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</Table>
 	{:else}
-		<p class="text-gray-500">No records yet</p>
+		<p class="text-secondary">No records yet</p>
 	{/if}
 </div>

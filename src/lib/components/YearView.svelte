@@ -4,7 +4,7 @@
     import { months } from '$lib/helpers';
     import { getTransactionsByMonth } from '$lib/aggregations';
 
-	let { selectedPeriod } = $props();
+	let { selectedYear } = $props();
 
 	// states
     let user_id = $state(null);
@@ -21,7 +21,7 @@
 
 	// load transactions on first load
 	onMount(async () => {
-		await loadTransactionsByMonth(selectedPeriod);
+		await loadTransactionsByMonth(selectedYear);
 	});
 
 	// update monthly totals when transaction changes
@@ -38,7 +38,7 @@
 
     // update when date changes
 	$effect(async () => {
-		await loadTransactionsByMonth(selectedPeriod);
+		await loadTransactionsByMonth(selectedYear);
         updateMonthlyTotals();
 	});
 </script>

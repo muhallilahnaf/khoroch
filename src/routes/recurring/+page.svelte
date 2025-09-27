@@ -214,6 +214,5 @@
 <style>
 	main {
 		height: 90vh;
-		flex-wrap: nowrap;
 	}
 </style>

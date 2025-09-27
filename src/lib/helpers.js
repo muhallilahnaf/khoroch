@@ -29,6 +29,17 @@ export const days = [
     'Saturday'
 ];
 
-export const getDayName = (dateStr) => days[new Date(dateStr).getDay()];
+export const getDayName = (dateStr) => {
+    if (dateStr) return days[new Date(dateStr).getDay()];
+    return days[new Date().getDay()];
+}
 
-export const getDateString = (dateObj) => dateObj.toISOString().split('T')[0];
+export const getMonthName = (dateObj) => {
+    if (dateObj) return months[dateObj.getMonth()];
+    return months[new Date().getMonth()];
+}
+
+export const getDateString = (dateObj) => {
+    if (dateObj) return dateObj.toISOString().split('T')[0];
+    return new Date().toISOString().split('T')[0];
+}

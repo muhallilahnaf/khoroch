@@ -2,7 +2,7 @@
 	import { supabase, fetchSession } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
 	import Authentication from '$lib/components/Authentication.svelte';
-	import { range, months, getDateString, getDayName } from '$lib/helpers';
+	import { range, months, getDateString, getDayName, getMonthName } from '$lib/helpers';
 	import DayView from '$lib/components/DayView.svelte';
 	import MonthView from '$lib/components/MonthView.svelte';
 	import YearView from '$lib/components/YearView.svelte';
@@ -11,9 +11,10 @@
 
 	// View state
 	let level = $state('day');
-	let selectedDate = $state(getDateString(new Date())); // today as default
+	let selectedDate = $state(getDateString()); // today as default
 	let day = $derived(getDayName(selectedDate));
-	let selectedPeriod = $state('');
+	let selectedMonth = $state(getMonthName()); // current month as default
+	let selectedYear = $state(new Date().getFullYear()); // current year as default
 
 	// Auth state
 	let session = $state(null);
@@ -57,7 +58,7 @@
 					</Input>
 				</div>
 
-				<!-- date/period select -->
+				<!-- date/month/year select -->
 				<div>
 					{#if level === 'day'}
 						<div class="hstack gap-2">
@@ -78,8 +79,8 @@
 								<Button
 									outline
 									size="sm"
-									color={selectedPeriod === m ? 'primary' : 'secondary'}
-									onclick={() => (selectedPeriod = m)}
+									color={selectedMonth === m ? 'primary' : 'secondary'}
+									onclick={() => (selectedMonth = m)}
 								>
 									{m}
 								</Button>
@@ -91,8 +92,8 @@
 								<Button
 									outline
 									size="sm"
-									color={selectedPeriod === y ? 'primary' : 'secondary'}
-									onclick={() => (selectedPeriod = y)}
+									color={selectedYear === y ? 'primary' : 'secondary'}
+									onclick={() => (selectedYear = y)}
 								>
 									{y}
 								</Button>
@@ -105,9 +106,9 @@
 			{#if level === 'day'}
 				<DayView {selectedDate} />
 			{:else if level === 'month'}
-				<MonthView {selectedPeriod} />
+				<MonthView {selectedMonth} />
 			{:else if level === 'year'}
-				<YearView {selectedPeriod} />
+				<YearView {selectedYear} />
 			{/if}
 		{/if}
 	</main>
