@@ -2,7 +2,22 @@
 	import { supabase, fetchSession, getUserId } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
 	import Authentication from '$lib/components/Authentication.svelte';
-    import { getDateString } from '$lib/helpers';
+	import Header from '$lib/components/Header.svelte';
+	import { getDateString } from '$lib/helpers';
+	import { Table } from '@sveltestrap/sveltestrap';
+	import {
+		Container,
+		Navbar,
+		Form,
+		Button,
+		Input,
+		Modal,
+		ModalBody,
+		ModalFooter,
+		ModalHeader,
+		InputGroup,
+		InputGroupText
+	} from '@sveltestrap/sveltestrap';
 
 	// states
 	let session = $state(null);
@@ -12,8 +27,11 @@
 	let description = $state('');
 	let amount = $state('');
 	let dayOfMonth = $state('');
+	let deleteTransactionText = $state('');
+	let deleteTransactionId = $state(null);
+	let deleteModalOpen = $state(false);
 
-    const today = new Date();
+	const today = new Date();
 
 	// Listen for auth changes
 	onMount(async () => {
@@ -57,76 +75,145 @@
 		if (error) console.log(error);
 	}
 
-    // delete a recurring transaction from db and update state
-	async function deleteRecurringTransaction(id) {        
-		const { error } = await supabase
-			.from('recurring_transactions')
-			.delete()
-            .eq('id', id);
+	// open delete modal
+	const openDeleteModal = (id) => {
+		const match = transactions.find((t) => t.id === id);
+		if (match) {
+			deleteTransactionText = match.description;
+			deleteTransactionId = id;
+			deleteModalOpen = true;
+		}
+	};
+
+	// delete a recurring transaction from db and update state
+	async function deleteRecurringTransaction(id) {
+		const { error } = await supabase.from('recurring_transactions').delete().eq('id', id);
 		if (!error) {
-			transactions = transactions.filter(t => t.id !== id);
-		}        
-        if (error) console.log(error);
+			transactions = transactions.filter((t) => t.id !== id);
+		}
+		if (error) console.log(error);
+		deleteTransactionId = null;
+		deleteTransactionText = '';
+		deleteModalOpen = false;
 	}
 
-    // get next recurring transaction date
-    const getNextRecurringDate = (day) => {
-        const targetDate = new Date();
-        targetDate.setDate(day);
-        const todayDayOfMonth = today.getDate();
-        if (todayDayOfMonth >= day) {
-            targetDate.setMonth(today.getMonth() + 1)
-        }
-        return getDateString(targetDate);
-    }
+	// get next recurring transaction date
+	const getNextRecurringDate = (day) => {
+		const targetDate = new Date();
+		targetDate.setDate(day);
+		const todayDayOfMonth = today.getDate();
+		if (todayDayOfMonth >= day) {
+			targetDate.setMonth(today.getMonth() + 1);
+		}
+		return getDateString(targetDate);
+	};
 </script>
 
-<main class="p-4 flex flex-col h-screen">
-	{#if !session}
-		<Authentication />
-	{:else}
-		<!-- Navbar -->
-		<div class="flex justify-between items-center mb-4">
-			<a href="/" class="text-xl font-bold">Khoroch</a>
-			<a href="/categories" class="bg-gray-300 px-3 py-1 rounded"> Categories </a>
-			<a href="/recurring" class="bg-gray-300 px-3 py-1 rounded"> Recurring transactions </a>
-			<button onclick={logout} class="bg-gray-300 px-3 py-1 rounded"> Logout </button>
-		</div>
+<Container>
+	<main class="position-relative">
+		<Header bind:value={session} />
+		{#if !session}
+			<Authentication />
+		{:else}
+			<p class="lead my-3">
+				<b>Recurring transactions</b>
+			</p>
+			<!-- Transactions List -->
+			<div class="overflow-y-auto mb-4">
+				{#if transactions.length > 0}
+					<Table borderless>
+						<thead>
+							<tr>
+								<th>Type</th>
+								<th>Description</th>
+								<th>Next recurring date</th>
+								<th>Amount</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each transactions as t}
+								<tr>
+									<td>{t.tr_type === 'income' ? '+' : '-'}</td>
+									<td>{t.description}</td>
+									<td>{getNextRecurringDate(t.day_of_month)}</td>
+									<td>
+										<span class={t.tr_type === 'income' ? 'text-success' : 'text-danger'}>
+											{t.amount}
+										</span>
+									</td>
+									<td>
+										<Button size="sm" outline color="danger" onclick={() => openDeleteModal(t.id)}>
+											Delete
+										</Button>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</Table>
+				{:else}
+					<p class="text-secondary">No records yet</p>
+				{/if}
+			</div>
 
-		<!-- Transactions List -->
-		<div class="flex-1 overflow-y-auto mb-4">
-			{#if transactions.length > 0}
-				{#each transactions as t}
-					<div class="p-1 border-b flex justify-between">
-						<div>
-							<span>{t.tr_type === 'income' ? '+' : '-'} {t.description}</span>
-						</div>
-                        <div>
-							<span>{getNextRecurringDate(t.day_of_month)}</span>
-						</div>
-						<div>
-							<span class={t.tr_type === 'income' ? 'text-green-600' : 'text-red-600'}>
-								{t.amount}
-							</span>
-							<button type="button" onclick={() => deleteRecurringTransaction(t.id)}>Delete</button>
-						</div>
+			<!-- Input Form -->
+			<div class="position-absolute top-100 start-50 translate-middle w-100 shadow">
+				<Form class="hstack gap-2 p-2 border rounded" onsubmit={addRecurringTransaction}>
+					<Input type="select" bind:value={tr_type} size="sm">
+						<option value="income">Income</option>
+						<option value="expense" selected>Expense</option>
+					</Input>
+					<Input placeholder="description" bind:value={description} size="sm" required />
+					<Input type="number" size="sm" placeholder="amount" bind:value={amount} required />
+					<div>
+						<InputGroup size="sm" style="flex-wrap: nowrap;">
+							<InputGroupText>Day of month</InputGroupText>
+							<Input
+								type="number"
+								min="1"
+								max="31"
+								size="sm"
+								bind:value={dayOfMonth}
+								required
+								style="width: 3rem;"
+							/>
+						</InputGroup>
 					</div>
-				{/each}
-			{:else}
-				<p class="text-gray-500">No records yet</p>
-			{/if}
-		</div>
+					<Button type="submit" size="sm" color="primary">Add</Button>
+				</Form>
+			</div>
+		{/if}
+	</main>
+</Container>
 
-		<!-- Input Form -->
-		<form class="p-4 border-t flex flex-col gap-2" onsubmit={addRecurringTransaction}>
-			<select bind:value={tr_type} class="p-1 border rounded">
-				<option value="income">Income</option>
-				<option value="expense">Expense</option>
-			</select>
-			<input placeholder="description" bind:value={description} class="p-1 border rounded" />
-			<input type="number" placeholder="amount" bind:value={amount} class="p-1 border rounded" />
-			<input type="number" min="1" max="31" bind:value={dayOfMonth} class="p-1 border rounded" />
-			<button type="submit" class="bg-blue-500 text-white p-1 rounded"> Add </button>
-		</form>
-	{/if}
-</main>
+<!-- Delete Modal -->
+<Modal isOpen={deleteModalOpen} size="sm">
+	<ModalHeader
+		toggle={() => {
+			deleteModalOpen = false;
+		}}
+	>
+		Delete transaction
+	</ModalHeader>
+	<ModalBody>
+		Are you sure you want to delete the recurring transaction: {deleteTransactionText}?
+	</ModalBody>
+	<ModalFooter>
+		<Button color="primary" onclick={deleteRecurringTransaction}>Yes</Button>
+		<Button
+			color="secondary"
+			onclick={() => {
+				deleteModalOpen = false;
+			}}
+		>
+			Cancel
+		</Button>
+	</ModalFooter>
+</Modal>
+
+<style>
+	main {
+		height: 90vh;
+		flex-wrap: nowrap;
+	}
+</style>

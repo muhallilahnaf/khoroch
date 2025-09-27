@@ -7,8 +7,16 @@
 		loadDescriptions
 	} from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
-	import AutoComplete from "simple-svelte-autocomplete";
-
+	import AutoComplete from 'simple-svelte-autocomplete';
+	import {
+		Button,
+		Modal,
+		ModalBody,
+		ModalFooter,
+		ModalHeader,
+		Input,
+		Form
+	} from '@sveltestrap/sveltestrap';
 
 	let { selectedDate } = $props();
 
@@ -25,6 +33,9 @@
 	let selectedMatch = $state('');
 	let categories = $state([]);
 	let autocompleteData = $state([]);
+	let deleteTransactionText = $state('');
+	let deleteTransactionId = $state(null);
+	let deleteModalOpen = $state(false);
 
 	// load transactions and userid on first load
 	onMount(async () => {
@@ -64,18 +75,20 @@
 
 	// add a new transaction to db and update state
 	const addTransaction = async (e) => {
-		e.preventDefault();		
-		if (!description || !amount) return;		
+		e.preventDefault();
+		if (!description || !amount) return;
 		const { data, error } = await supabase
 			.from('transactions')
-			.insert([{ 
-				tr_type, 
-				category_id, 
-				description, 
-				amount, 
-				date: selectedDate, 
-				user_id 
-			}])
+			.insert([
+				{
+					tr_type,
+					category_id,
+					description,
+					amount,
+					date: selectedDate,
+					user_id
+				}
+			])
 			.select();
 		if (!error && data) {
 			transactions = [data[0], ...transactions];
@@ -86,13 +99,26 @@
 		updateDailyTotals();
 	};
 
+	// open delete modal
+	const openDeleteModal = (id) => {
+		const match = transactions.find((t) => t.id === id);
+		if (match) {
+			deleteTransactionText = match.description;
+			deleteTransactionId = id;
+			deleteModalOpen = true;
+		}
+	};
+
 	// delete a transaction from db and update state
-	const deleteTransaction = async (id) => {
-		const { error } = await supabase.from('transactions').delete().eq('id', id);
+	const deleteTransaction = async () => {
+		const { error } = await supabase.from('transactions').delete().eq('id', deleteTransactionId);
 		if (!error) {
-			transactions = transactions.filter((t) => t.id !== id);
+			transactions = transactions.filter((t) => t.id !== deleteTransactionId);
 		}
 		if (error) console.log(error);
+		deleteTransactionId = null;
+		deleteTransactionText = '';
+		deleteModalOpen = false;
 		updateDailyTotals();
 	};
 
@@ -105,45 +131,82 @@
 </script>
 
 <!-- daily totals -->
-<div class="p-4 border rounded mb-4">
-	<h3 class="font-bold">Today's Totals</h3>
-	<p>Income: <span class="text-green-600">{dailyIncome}</span></p>
-	<p>Expense: <span class="text-red-600">{dailyExpense}</span></p>
+<div class="mb-4 p-2 border">
+	<p class="lead">Today's Totals</p>
+	<div class="hstack gap-3">
+		<p class="m-0">Income: <span class="text-success">{dailyIncome}</span></p>
+		<p class="m-0">Expense: <span class="text-danger">{dailyExpense}</span></p>
+	</div>
 </div>
 
 <!-- Transactions List -->
-<div class="flex-1 overflow-y-auto mb-4">
+<div class="overflow-y-auto mb-4">
 	{#if transactions.length > 0}
 		{#each transactions as t}
-			<div class="p-1 border-b flex justify-between">
-				<div>
-					<span>{t.tr_type === 'income' ? '+' : '-'} {t.description}</span>
-				</div>
-				<div>
-					<span class={t.tr_type === 'income' ? 'text-green-600' : 'text-red-600'}>
-						{t.amount}
-					</span>
-					<button type="button" onclick={() => deleteTransaction(t.id)}>Delete</button>
-				</div>
+			<div class="hstack gap-3 mb-1">
+				<span>{t.tr_type === 'income' ? '+' : '-'} {t.description}</span>
+				<span class={t.tr_type === 'income' ? 'text-success ms-auto' : 'text-danger ms-auto'}>
+					{t.amount}
+				</span>
+				<Button size="sm" outline color="danger" onclick={() => openDeleteModal(t.id)}>Delete</Button>
 			</div>
 		{/each}
 	{:else}
-		<p class="text-gray-500">No records yet</p>
+		<p class="text-secondary">No records yet</p>
 	{/if}
 </div>
 
 <!-- Input Form -->
-<form class="p-4 border-t flex flex-col gap-2" onsubmit={addTransaction}>
-	<select bind:value={category_id} class="p-1 border rounded">
-		{#each categories as c}
-			<option value={c.category_id}>{c.category_name}</option>
-		{/each}
-	</select>
-	<select bind:value={tr_type} class="p-1 border rounded">
-		<option value="income">Income</option>
-		<option value="expense">Expense</option>
-	</select>
-	<AutoComplete items={autocompleteData} bind:selectedItem={selectedMatch} labelFieldName="description" />
-	<input type="number" placeholder="amount" bind:value={amount} class="p-1 border rounded" />
-	<button type="submit" class="bg-blue-500 text-white p-1 rounded"> Add </button>
-</form>
+<div class="position-absolute top-100 start-50 translate-middle w-100 shadow">
+	<Form class="hstack gap-2 p-2 border rounded" onsubmit={addTransaction}>
+		<Input type="select" bind:value={category_id} size="sm">
+			<option disabled selected value="">Category</option>
+			{#each categories as c}
+				<option value={c.category_id}>{c.category_name}</option>
+			{/each}
+		</Input>
+
+		<Input type="select" bind:value={tr_type} size="sm">
+			<option value="income">Income</option>
+			<option value="expense" selected>Expense</option>
+		</Input>
+
+		<AutoComplete
+			items={autocompleteData}
+			bind:selectedItem={selectedMatch}
+			labelFieldName="description"
+			inputClassName="form-select form-select-sm"
+			placeholder="description"
+			required
+		/>
+		<Input type="number" size="sm" placeholder="amount" bind:value={amount} required />
+		<Button type="submit" size="sm" color="primary">Add</Button>
+	</Form>
+</div>
+
+<!-- Delete Modal -->
+<Modal isOpen={deleteModalOpen} size="sm">
+	<ModalHeader
+		toggle={() => {deleteModalOpen = false;}}
+	>
+		Delete transaction
+		</ModalHeader>
+	<ModalBody>
+		Are you sure you want to delete the transaction: {deleteTransactionText}?
+	</ModalBody>
+	<ModalFooter>
+		<Button color="primary" onclick={deleteTransaction}>Yes</Button>
+		<Button
+			color="secondary"
+			onclick={() => {deleteModalOpen = false;}}
+		>
+			Cancel
+		</Button>
+	</ModalFooter>
+</Modal>
+
+<style>
+	/* .autocomplete.select {
+		border: 0 !important;
+	} */
+</style>

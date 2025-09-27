@@ -1,6 +1,8 @@
 <script>
 	import { supabase } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
+	import {Form, FormGroup, Input, Button} from '@sveltestrap/sveltestrap';
+	import ErrorAlert from './ErrorAlert.svelte';
 
 	// Auth state
 	let email = '';
@@ -10,7 +12,8 @@
 	let message = '';
 
 	// Login/Register
-	async function handleAuth() {
+	async function handleAuth(e) {
+		e.preventDefault();
 		authError = '';
 		if (!email || !password) return;
 
@@ -34,34 +37,33 @@
 </script>
 
 {#if message !== ''}
-	<div class="flex flex-col gap-3 max-w-sm mx-auto mt-20 w-full">
-		<p class="text-green-600">{message}</p>
+	<div class="mt-3">
+		<p class="text-success">{message}</p>
 	</div>
 {:else}
 	<!-- Login/Register Form -->
-	<div class="flex flex-col gap-3 max-w-sm mx-auto mt-20 w-full">
-		<h2 class="text-xl font-bold text-center">
-			{isRegister ? 'Register' : 'Login'}
-		</h2>
-		<input type="email" placeholder="Email" bind:value={email} class="p-2 border rounded" />
-		<input
-			type="password"
-			placeholder="Password"
-			bind:value={password}
-			class="p-2 border rounded"
-		/>
+	<Form class="mt-3">
+		<p class="lead">
+			<b>{isRegister ? 'Register' : 'Login'}</b>
+		</p>
+		<FormGroup floating label="Email">
+			<Input type="email" bind:value={email} />
+		</FormGroup>
+		<FormGroup floating label="Password">
+			<Input type="password" bind:value={password} />
+		</FormGroup>
 		{#if authError}
-			<p class="text-red-600">{authError}</p>
+			<ErrorAlert message={authError} />
 		{/if}
-		<button
-			class="bg-blue-500 text-white p-2 rounded"
-			id="btn-auth"
-			on:click|preventDefault={handleAuth}
-		>
-			{isRegister ? 'Register' : 'Login'}
-		</button>
-		<button class="text-blue-600 underline" on:click={() => (isRegister = !isRegister)}>
+		<div>
+			<Button color="info" onclick={handleAuth}>
+				{isRegister ? 'Register' : 'Login'}
+			</Button>
+		</div>
+	</Form>
+	<div class="mt-4">
+		<Button class="" onclick={() => (isRegister = !isRegister)}>
 			{isRegister ? 'Already have an account? Login' : 'No account? Register'}
-		</button>
+		</Button>
 	</div>
 {/if}
