@@ -9,3 +9,13 @@ export async function getTransactionsByMonth(monthNumber) {
   }
   return data;
 }
+
+export async function getTransactionsByCategories() {
+  const { data, error } = await supabase.rpc('get_transactions_by_categories');
+  // cols: category_name, total
+  if (error) {
+    console.log(error)
+    return [];
+  }
+  return data;
+}

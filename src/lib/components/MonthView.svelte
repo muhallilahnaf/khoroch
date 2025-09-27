@@ -2,6 +2,8 @@
 	import { supabase, loadTransactionsByMonth } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
 	import { Table } from '@sveltestrap/sveltestrap';
+	import Chart from '$lib/components/Chart.svelte';
+	import { getTransactionsByCategories } from '$lib/aggregations';
 
 	let { selectedMonth } = $props();
 
@@ -12,10 +14,13 @@
 	let monthlyRemaining = $state(0);
 	let monthlyAvgExpense = $state('0');
 	let transactions = $state([]);
+	let dataSumCategories = $state([]);
+	let chartData = $derived(getChartData(dataSumCategories));
 
 	// load transactions on first load
 	onMount(async () => {
 		transactions = await loadTransactionsByMonth(selectedMonth);
+		dataSumCategories = await getTransactionsByCategories();
 	});
 
 	// update monthly totals when transaction changes
@@ -33,7 +38,7 @@
 		monthlyIncome = totalIncome;
 		monthlyExpense = totalExpense;
 		monthlyRemaining = monthlyIncome - monthlyExpense;
-		monthlyAvgExpense = (expenseCount !== 0) ? (totalExpense / expenseCount).toFixed(0) : '0';		
+		monthlyAvgExpense = expenseCount !== 0 ? (totalExpense / expenseCount).toFixed(0) : '0';
 	};
 
 	// update when date changes
@@ -41,6 +46,27 @@
 		transactions = await loadTransactionsByMonth(selectedMonth);
 		updateMonthlyTotals();
 	});
+
+	const getChartData = (data) => {
+		return {
+			labels: data.map((r) => r.category_name),
+			datasets: [
+				{
+					label: 'Yearly Total',
+					data: data.map((r) => r.total)
+				}
+			]
+		};
+	};
+
+	const chartOptions = {
+		responsive: true,
+		scales: {
+			y: {
+				beginAtZero: true
+			}
+		}
+	};
 </script>
 
 <!-- monthly totals -->
@@ -80,4 +106,8 @@
 	{:else}
 		<p class="text-secondary">No records yet</p>
 	{/if}
+
+	<div class="my-4">
+		<Chart type="pie" data={chartData} options={chartOptions} />
+	</div>
 </div>
