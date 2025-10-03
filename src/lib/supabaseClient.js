@@ -4,7 +4,7 @@ import {
   PUBLIC_SUPABASE_PUBLISHABLE_KEY
 } from '$env/static/public';
 import { months } from './helpers';
-import { getTransactionsByMonth } from './aggregations';
+import { getSumForMonth } from './aggregations';
 
 
 export const supabase = createClient(
@@ -43,30 +43,19 @@ export const loadTransactionsByDate = async (date) => {
 };
 
 // load transactions by month
-export const loadTransactionsByMonth = async (month) => {
+export const loadTransactionsByMonth = async (month, year) => {
   const monthNumber = months.indexOf(month) + 1;
-  const data = await getTransactionsByMonth(monthNumber);
+  const data = await getSumForMonth(monthNumber, year);
   return data;
 };
 
 // load descriptions and categories
-export const loadDescriptions = async () => {
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('category_id, description');
-  if (!error && data) {
-    let descriptions = [];
-    let finalData = [];
-    data.forEach(row => {
-      if (!descriptions.includes(row.description)) {
-        descriptions.push(row.description);
-        finalData.push({
-          category_id: row.category_id,
-          description: row.description,
-        });
-      }
-    });
-    return finalData;
+export async function getDescriptions() {
+  const { data, error } = await supabase.rpc('get_unique_descriptions');
+  // cols: descript, cat_id
+  if (error) {
+    console.log(error)
+    return [];
   }
-  if (error) console.log(error);
+  return data;
 };

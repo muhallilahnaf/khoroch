@@ -2,8 +2,9 @@
 	import { supabase } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
     import { months, monthsFull } from '$lib/helpers';
-    import { getTransactionsByCategoryByMonth, getTransactionsByYear } from '$lib/aggregations';
+    import { getSumCategoryForYear, getSumForYear } from '$lib/aggregations';
 	import { Progress, Table } from '@sveltestrap/sveltestrap';
+	import Chart from './Chart.svelte';
 
 	let { selectedYear } = $props();
 
@@ -12,18 +13,20 @@
 	let yearlyIncome = $state(0);
 	let yearlyExpense = $state(0);
 	let monthlyAvgExpense = $state(0);
+	let dataSumCategory = $state([]);
+	let chartData = $derived(getChartData(dataSumCategory));
 	let transactions = $state([]);
 
 	// load yearly transactions
 	const loadTransactionsByYear = async (selectedYear) => {
-		const data = await getTransactionsByYear(selectedYear);
+		const data = await getSumForYear(selectedYear);
         transactions = [...data];
 	}
-
 
 	// load transactions on first load
 	onMount(async () => {
 		await loadTransactionsByYear(selectedYear);
+		dataSumCategory = await getSumCategoryForYear(selectedYear);
 	});
 
 	// update yearly totals when transaction changes
@@ -45,7 +48,29 @@
 	$effect(async () => {
 		await loadTransactionsByYear(selectedYear);
         updateYearlyTotals();
+		dataSumCategory = await getSumCategoryForYear(selectedYear);
 	});
+
+	const getChartData = (data) => {		
+		return {
+			labels: data.map((r) => r.category),
+			datasets: [
+				{
+					label: 'Yearly Total',
+					data: data.map((r) => r.total)
+				}
+			]
+		};
+	};
+
+	const chartOptions = {
+		responsive: true,
+		scales: {
+			y: {
+				beginAtZero: true
+			}
+		}
+	};
 </script>
 
 <!-- yearly totals -->
@@ -63,7 +88,7 @@
 <!-- Transactions List -->
 <div class="flex-1 overflow-y-auto mb-4">
 	{#if transactions.length > 0}
-                <Table borderless size="sm">
+                <Table borderless bsSize="sm">
                     <thead>
                         <tr>
                             <th>Month</th>
@@ -88,6 +113,12 @@
 	{:else}
 		<p class="text-secondary">No records yet</p>
 	{/if}
+
+	<div class="my-4">
+		{#if dataSumCategory.length > 0}
+			<Chart type="pie" data={chartData} options={chartOptions} />
+		{/if}
+	</div>
 </div>
 
 <style>

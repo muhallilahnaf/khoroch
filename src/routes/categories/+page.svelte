@@ -76,8 +76,8 @@
 
 			<!-- Input Form -->
 			<Form class="hstack gap-2 p-2" onsubmit={addCategory}>
-				<Input placeholder="Category name" bind:value={category_name} size="sm" />
-				<Button type="submit" size="sm" color="primary">Add</Button>
+				<Input placeholder="Category name" bind:value={category_name} bsSize="sm" />
+				<Button type="submit" bsSize="sm" color="primary">Add</Button>
 			</Form>
 		{/if}
 	</main>

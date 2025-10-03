@@ -4,10 +4,10 @@
 		loadCategories,
 		supabase,
 		loadTransactionsByDate,
-		loadDescriptions
+		getDescriptions
 	} from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
-	import AutoComplete from 'simple-svelte-autocomplete';
+	import Svelecte from 'svelecte';
 	import {
 		Button,
 		Modal,
@@ -28,22 +28,30 @@
 	let tr_type = $state('expense');
 	let description = $state('');
 	let amount = $state('');
-	let category_id = $state('');
-	let matches = $state([]);
-	let selectedMatch = $state('');
+	let category_id = $derived(selectedMatch?.cat_id);
+	let selectedMatch = $derived(getMatch(description));
 	let categories = $state([]);
-	let autocompleteData = $state([]);
+	let descriptionData = $state([]);
+	let autocompleteData = $derived(getAutocompleteData(descriptionData));
 	let deleteTransactionText = $state('');
 	let deleteTransactionId = $state(null);
 	let deleteModalOpen = $state(false);
+
+	// get description list for autocomplete from description data
+	const getAutocompleteData = (data) => data.map(d => d.descript);
+
+	// get matching description and category id from autocomplete
+	const getMatch = (descript) => {
+		return descriptionData.filter(row => row.descript == descript);
+	}
 
 	// load transactions and userid on first load
 	onMount(async () => {
 		transactions = await loadTransactionsByDate(selectedDate);
 		user_id = await getUserId();
 		categories = await loadCategories();
-		autocompleteData = await loadDescriptions();
-		console.log(categories);
+		descriptionData = await getDescriptions();
+		console.log(descriptionData);
 		console.log(autocompleteData);
 	});
 
@@ -65,18 +73,31 @@
 		updateDailyTotals();
 	});
 
-	// update when selected match changes
-	$effect(() => {
-		if (selectedMatch.description && selectedMatch.description !== '') {
-			category_id = selectedMatch.category_id;
-			description = selectedMatch.description;
-		}
-	});
+	// update when description is selected
+	// $effect(() => {
+	// 	if (description && description !== '') {
+	// 		selectedMatch = descriptionData.filter((row) => {
+	// 			row.descript
+	// 		})
+	// 		.category_id;
+	// 		description = selectedMatch.description;
+	// 	}
+	// });
 
 	// add a new transaction to db and update state
 	const addTransaction = async (e) => {
+		console.log({
+					tr_type,
+					category_id,
+					description,
+					amount,
+					date: selectedDate,
+					user_id
+				});
+				return
 		e.preventDefault();
 		if (!description || !amount) return;
+		
 		const { data, error } = await supabase
 			.from('transactions')
 			.insert([
@@ -126,7 +147,6 @@
 	const autocomplete = () => {
 		console.log('autocomplete');
 		matches = autocompleteData.filter((item) => item.description.includes(description));
-		console.log(matches);
 	};
 </script>
 
@@ -148,7 +168,7 @@
 				<span class={t.tr_type === 'income' ? 'text-success ms-auto' : 'text-danger ms-auto'}>
 					{t.amount}
 				</span>
-				<Button size="sm" outline color="danger" onclick={() => openDeleteModal(t.id)}>Delete</Button>
+				<Button bsSize="sm" outline color="danger" onclick={() => openDeleteModal(t.id)}>Delete</Button>
 			</div>
 		{/each}
 	{:else}
@@ -160,35 +180,39 @@
 <div class="position-absolute top-100 start-50 translate-middle w-100 shadow">
 	<Form class="p-2 border rounded" onsubmit={addTransaction}>
 		<div class="hstack gap-2">
-			<AutoComplete
-				items={autocompleteData}
-				bind:selectedItem={selectedMatch}
-				labelFieldName="description"
-				inputClassName="w-100"
-				placeholder="description"
+			<Svelecte
+				name="svelecte"
+				options={autocompleteData}
+				bind:value={description}
+				onChange={(s) => console.log(s)}
+				creatable={true}
+				creatablePrefix=""
+				allowEditing={true}
+				keepCreated={false}
 				required
-				style="width: 100%;"
+				placeholder="description"
+
 			/>
 		</div>
 		<div class="hstack gap-2">
-			<Input type="select" bind:value={tr_type} size="sm">
+			<Input type="select" bind:value={tr_type} bsSize="sm">
 				<option value="income">Income</option>
 				<option value="expense" selected>Expense</option>
 			</Input>
-			<Input type="select" bind:value={category_id} size="sm">
+			<Input type="select" bind:value={category_id} bsSize="sm">
 				<option disabled selected value="">Category</option>
 				{#each categories as c}
-				<option value={c.category_id}>{c.category_name}</option>
+				<option value={c.id}>{c.category_name}</option>
 				{/each}
 			</Input>
-			<Input type="number" size="sm" placeholder="amount" bind:value={amount} required />
-			<Button type="submit" size="sm" color="primary">Add</Button>
+			<Input type="number" bsSize="sm" placeholder="amount" bind:value={amount} required />
+			<Button type="submit" bsSize="sm" color="primary">Add</Button>
 		</div>
 	</Form>
 </div>
 
 <!-- Delete Modal -->
-<Modal isOpen={deleteModalOpen} size="sm">
+<Modal isOpen={deleteModalOpen} bsSize="sm">
 	<ModalHeader
 		toggle={() => {deleteModalOpen = false;}}
 	>
@@ -209,8 +233,8 @@
 </Modal>
 
 <style>
-	.autocomplete {
+	/* .autocomplete {
 		border: 0 !important;
 		width: 100%;
-	}
+	} */
 </style>

@@ -143,7 +143,7 @@
 										</span>
 									</td>
 									<td>
-										<Button size="sm" outline color="danger" onclick={() => openDeleteModal(t.id)}>
+										<Button bsSize="sm" outline color="danger" onclick={() => openDeleteModal(t.id)}>
 											Delete
 										</Button>
 									</td>
@@ -159,27 +159,27 @@
 			<!-- Input Form -->
 			<div class="position-absolute top-100 start-50 translate-middle w-100 shadow">
 				<Form class="hstack gap-2 p-2 border rounded" onsubmit={addRecurringTransaction}>
-					<Input type="select" bind:value={tr_type} size="sm">
+					<Input type="select" bind:value={tr_type} bsSize="sm">
 						<option value="income">Income</option>
 						<option value="expense" selected>Expense</option>
 					</Input>
-					<Input placeholder="description" bind:value={description} size="sm" required />
-					<Input type="number" size="sm" placeholder="amount" bind:value={amount} required />
+					<Input placeholder="description" bind:value={description} bsSize="sm" required />
+					<Input type="number" bsSize="sm" placeholder="amount" bind:value={amount} required />
 					<div>
-						<InputGroup size="sm" style="flex-wrap: nowrap;">
+						<InputGroup bsSize="sm" style="flex-wrap: nowrap;">
 							<InputGroupText>Day of month</InputGroupText>
 							<Input
 								type="number"
 								min="1"
 								max="31"
-								size="sm"
+								bsSize="sm"
 								bind:value={dayOfMonth}
 								required
 								style="width: 3rem;"
 							/>
 						</InputGroup>
 					</div>
-					<Button type="submit" size="sm" color="primary">Add</Button>
+					<Button type="submit" bsSize="sm" color="primary">Add</Button>
 				</Form>
 			</div>
 		{/if}
@@ -187,7 +187,7 @@
 </Container>
 
 <!-- Delete Modal -->
-<Modal isOpen={deleteModalOpen} size="sm">
+<Modal isOpen={deleteModalOpen} bsSize="sm">
 	<ModalHeader
 		toggle={() => {
 			deleteModalOpen = false;

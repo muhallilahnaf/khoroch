@@ -63,14 +63,14 @@
 					{#if level === 'day'}
 						<div class="hstack gap-2">
 							<div>
-								<Button size="sm" outline onclick={() => gotoPrevNextDay('prev')}>«</Button>
+								<Button bsSize="sm" outline onclick={() => gotoPrevNextDay('prev')}>«</Button>
 							</div>
 							<InputGroup>
 								<InputGroupText style="width: 9rem">{day}</InputGroupText>
 								<Input type="date" bind:value={selectedDate} />
 							</InputGroup>
 							<div>
-								<Button size="sm" outline onclick={() => gotoPrevNextDay('next')}>»</Button>
+								<Button bsSize="sm" outline onclick={() => gotoPrevNextDay('next')}>»</Button>
 							</div>
 						</div>
 					{:else if level === 'month'}
@@ -78,7 +78,7 @@
 							{#each months as m}
 								<Button
 									outline
-									size="sm"
+									bsSize="sm"
 									color={selectedMonth === m ? 'primary' : 'secondary'}
 									onclick={() => (selectedMonth = m)}
 								>
@@ -91,7 +91,7 @@
 							{#each range(2020, 2030, 1) as y}
 								<Button
 									outline
-									size="sm"
+									bsSize="sm"
 									color={selectedYear === y ? 'primary' : 'secondary'}
 									onclick={() => (selectedYear = y)}
 								>
@@ -106,7 +106,7 @@
 			{#if level === 'day'}
 				<DayView {selectedDate} />
 			{:else if level === 'month'}
-				<MonthView {selectedMonth} />
+				<MonthView {selectedMonth} {selectedYear} />
 			{:else if level === 'year'}
 				<YearView {selectedYear} />
 			{/if}
