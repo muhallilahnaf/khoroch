@@ -1,83 +1,97 @@
 <script>
 	import { supabase } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
-    import { months } from '$lib/helpers';
-    import { getTransactionsByMonth } from '$lib/aggregations';
+    import { months, monthsFull } from '$lib/helpers';
+    import { getTransactionsByCategoryByMonth, getTransactionsByYear } from '$lib/aggregations';
+	import { Progress, Table } from '@sveltestrap/sveltestrap';
 
 	let { selectedYear } = $props();
 
 	// states
     let user_id = $state(null);
-	let monthlyIncome = $state(0);
-	let monthlyExpense = $state(0);
+	let yearlyIncome = $state(0);
+	let yearlyExpense = $state(0);
+	let monthlyAvgExpense = $state(0);
 	let transactions = $state([]);
 
-	// load transactions
-	async function loadTransactionsByMonth(month) {
-        const monthNumber = months.indexOf(month) + 1;
-		const data = await getTransactionsByMonth(monthNumber);
+	// load yearly transactions
+	const loadTransactionsByYear = async (selectedYear) => {
+		const data = await getTransactionsByYear(selectedYear);
         transactions = [...data];
 	}
 
+
 	// load transactions on first load
 	onMount(async () => {
-		await loadTransactionsByMonth(selectedYear);
+		await loadTransactionsByYear(selectedYear);
 	});
 
-	// update monthly totals when transaction changes
-	const updateMonthlyTotals = () => {
+	// update yearly totals when transaction changes
+	const updateYearlyTotals = () => {
 		let totalIncome = 0;
 		let totalExpense = 0;
 		transactions.forEach((e) => {
-			if (e.type === 'income') totalIncome = totalIncome + e.value;
-			if (e.type === 'expense') totalExpense = totalExpense + e.value;
+			if (e.type === 'income') totalIncome = totalIncome + e.total;
+			if (e.type === 'expense') totalExpense = totalExpense + e.total;
 		});
-		monthlyIncome = totalIncome;
-		monthlyExpense = totalExpense;
+		yearlyIncome = totalIncome;
+		yearlyExpense = totalExpense;
+		const today = new Date();
+		const currentMonth = today.getMonth();
+		monthlyAvgExpense = (yearlyExpense / (currentMonth + 1)).toFixed(0);
 	};
 
     // update when date changes
 	$effect(async () => {
-		await loadTransactionsByMonth(selectedYear);
-        updateMonthlyTotals();
+		await loadTransactionsByYear(selectedYear);
+        updateYearlyTotals();
 	});
 </script>
 
-<!-- monthly totals -->
-<div class="p-4 border rounded mb-4">
-	<h3 class="font-bold">This Month's Totals</h3>
-	<p>Income: <span class="text-green-600">{monthlyIncome}</span></p>
-	<p>Expense: <span class="text-red-600">{monthlyExpense}</span></p>
+<!-- yearly totals -->
+<div class="mb-4 p-2 border">
+	<p class="lead">{selectedYear} Summary</p>
+	<p class="m-0">Income: <span class="text-success">{yearlyIncome}</span></p>
+	<Progress color="warning" value={yearlyExpense} max={yearlyIncome}>
+		Expense: {yearlyExpense}
+	</Progress>
+	<div class="d-flex justify-content-end font-small">
+		<p class="m-0">Avg. Expense: {monthlyAvgExpense}</p>
+	</div>
 </div>
 
 <!-- Transactions List -->
 <div class="flex-1 overflow-y-auto mb-4">
 	{#if transactions.length > 0}
-                <table>
+                <Table borderless size="sm">
                     <thead>
                         <tr>
-                            <th>Date</th>
+                            <th>Month</th>
                             <th>Type</th>
-                            <th>Text</th>
                             <th>Value</th>
                         </tr>
                     </thead>
                     <tbody>
                         {#each transactions as t}
                         <tr>
-                            <td>{t.date}</td>
+                            <td>{monthsFull[t.month - 1]}</td>
                             <td>{t.type}</td>
-                            <td>{t.text}</td>
                             <td 
-                                class={t.type === 'income' ? 'text-green-600' : 'text-red-600'}
+                                class={t.type === 'income' ? 'text-success' : 'text-danger'}
                             >
-                                {t.value}
+                                {t.total}
                             </td>
                         </tr>
                         {/each}
                     </tbody>
-                </table>		
+                </Table>		
 	{:else}
-		<p class="text-gray-500">No records yet</p>
+		<p class="text-secondary">No records yet</p>
 	{/if}
 </div>
+
+<style>
+	.font-small {
+		font-size: small;
+	}
+</style>

@@ -6,13 +6,7 @@
 	let canvas;
 
 	onMount(() => {
-        if (canvas) {
-            new Chart(canvas, {
-                type: type,
-                data: data,
-                options: options
-            });
-        }
+        if (canvas) new Chart(canvas, {type, data, options});
     });
 </script>
 

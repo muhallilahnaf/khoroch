@@ -158,29 +158,32 @@
 
 <!-- Input Form -->
 <div class="position-absolute top-100 start-50 translate-middle w-100 shadow">
-	<Form class="hstack gap-2 p-2 border rounded" onsubmit={addTransaction}>
-		<Input type="select" bind:value={category_id} size="sm">
-			<option disabled selected value="">Category</option>
-			{#each categories as c}
+	<Form class="p-2 border rounded" onsubmit={addTransaction}>
+		<div class="hstack gap-2">
+			<AutoComplete
+				items={autocompleteData}
+				bind:selectedItem={selectedMatch}
+				labelFieldName="description"
+				inputClassName="w-100"
+				placeholder="description"
+				required
+				style="width: 100%;"
+			/>
+		</div>
+		<div class="hstack gap-2">
+			<Input type="select" bind:value={tr_type} size="sm">
+				<option value="income">Income</option>
+				<option value="expense" selected>Expense</option>
+			</Input>
+			<Input type="select" bind:value={category_id} size="sm">
+				<option disabled selected value="">Category</option>
+				{#each categories as c}
 				<option value={c.category_id}>{c.category_name}</option>
-			{/each}
-		</Input>
-
-		<Input type="select" bind:value={tr_type} size="sm">
-			<option value="income">Income</option>
-			<option value="expense" selected>Expense</option>
-		</Input>
-
-		<AutoComplete
-			items={autocompleteData}
-			bind:selectedItem={selectedMatch}
-			labelFieldName="description"
-			inputClassName="form-select form-select-sm"
-			placeholder="description"
-			required
-		/>
-		<Input type="number" size="sm" placeholder="amount" bind:value={amount} required />
-		<Button type="submit" size="sm" color="primary">Add</Button>
+				{/each}
+			</Input>
+			<Input type="number" size="sm" placeholder="amount" bind:value={amount} required />
+			<Button type="submit" size="sm" color="primary">Add</Button>
+		</div>
 	</Form>
 </div>
 
@@ -206,7 +209,8 @@
 </Modal>
 
 <style>
-	/* .autocomplete.select {
+	.autocomplete {
 		border: 0 !important;
-	} */
+		width: 100%;
+	}
 </style>
