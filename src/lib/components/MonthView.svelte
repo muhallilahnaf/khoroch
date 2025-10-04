@@ -20,13 +20,6 @@
 	let chartData = $derived(getChartData(dataSumCategory));
 	let monthName = $derived(monthsFull[months.indexOf(selectedMonth)]);
 
-	// load transactions on first load
-	onMount(async () => {
-		transactions = await loadTransactionsByMonth(selectedMonth, selectedYear);
-		const monthNumber = months.indexOf(selectedMonth) + 1;
-		dataSumCategory = await getSumCategoryForMonth(monthNumber, selectedYear);
-	});
-
 	// update monthly totals when transaction changes
 	const updateMonthlyTotals = () => {
 		let totalIncome = 0;
@@ -79,11 +72,6 @@
 
 	const chartOptions = {
 		responsive: true,
-		scales: {
-			y: {
-				beginAtZero: true
-			}
-		}
 	};
 </script>
 

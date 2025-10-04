@@ -1,15 +1,15 @@
 <script>
 	import { supabase } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
-    import { months, monthsFull } from '$lib/helpers';
-    import { getSumCategoryForYear, getSumForYear } from '$lib/aggregations';
+	import { months, monthsFull } from '$lib/helpers';
+	import { getSumCategoryForYear, getSumForYear } from '$lib/aggregations';
 	import { Progress, Table } from '@sveltestrap/sveltestrap';
 	import Chart from './Chart.svelte';
 
 	let { selectedYear } = $props();
 
 	// states
-    let user_id = $state(null);
+	let user_id = $state(null);
 	let yearlyIncome = $state(0);
 	let yearlyExpense = $state(0);
 	let monthlyAvgExpense = $state(0);
@@ -20,14 +20,8 @@
 	// load yearly transactions
 	const loadTransactionsByYear = async (selectedYear) => {
 		const data = await getSumForYear(selectedYear);
-        transactions = [...data];
-	}
-
-	// load transactions on first load
-	onMount(async () => {
-		await loadTransactionsByYear(selectedYear);
-		dataSumCategory = await getSumCategoryForYear(selectedYear);
-	});
+		transactions = [...data];
+	};
 
 	// update yearly totals when transaction changes
 	const updateYearlyTotals = () => {
@@ -44,14 +38,14 @@
 		monthlyAvgExpense = (yearlyExpense / (currentMonth + 1)).toFixed(0);
 	};
 
-    // update when date changes
+	// update when date changes
 	$effect(async () => {
 		await loadTransactionsByYear(selectedYear);
-        updateYearlyTotals();
+		updateYearlyTotals();
 		dataSumCategory = await getSumCategoryForYear(selectedYear);
 	});
 
-	const getChartData = (data) => {		
+	const getChartData = (data) => {
 		return {
 			labels: data.map((r) => r.category),
 			datasets: [
@@ -65,11 +59,6 @@
 
 	const chartOptions = {
 		responsive: true,
-		scales: {
-			y: {
-				beginAtZero: true
-			}
-		}
 	};
 </script>
 
@@ -88,28 +77,26 @@
 <!-- Transactions List -->
 <div class="flex-1 overflow-y-auto mb-4">
 	{#if transactions.length > 0}
-                <Table borderless bsSize="sm">
-                    <thead>
-                        <tr>
-                            <th>Month</th>
-                            <th>Type</th>
-                            <th>Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {#each transactions as t}
-                        <tr>
-                            <td>{monthsFull[t.month - 1]}</td>
-                            <td>{t.type}</td>
-                            <td 
-                                class={t.type === 'income' ? 'text-success' : 'text-danger'}
-                            >
-                                {t.total}
-                            </td>
-                        </tr>
-                        {/each}
-                    </tbody>
-                </Table>		
+		<Table borderless bsSize="sm">
+			<thead>
+				<tr>
+					<th>Month</th>
+					<th>Type</th>
+					<th>Value</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each transactions as t}
+					<tr>
+						<td>{monthsFull[t.month - 1]}</td>
+						<td>{t.type}</td>
+						<td class={t.type === 'income' ? 'text-success' : 'text-danger'}>
+							{t.total}
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</Table>
 	{:else}
 		<p class="text-secondary">No records yet</p>
 	{/if}

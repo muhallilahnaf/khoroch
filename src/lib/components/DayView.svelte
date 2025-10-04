@@ -18,24 +18,28 @@
 		Form
 	} from '@sveltestrap/sveltestrap';
 
-	let { selectedDate } = $props();
+	let { selectedDate, user_id, categories, descriptionData } = $props();
 
 	// states
-	let user_id = $state(null);
 	let dailyIncome = $state(0);
 	let dailyExpense = $state(0);
 	let transactions = $state([]);
 	let tr_type = $state('expense');
 	let description = $state('');
 	let amount = $state('');
-	let category_id = $derived(selectedMatch?.cat_id);
 	let selectedMatch = $derived(getMatch(description));
-	let categories = $state([]);
-	let descriptionData = $state([]);
+	let category_id = $derived(getCatId(selectedMatch));
 	let autocompleteData = $derived(getAutocompleteData(descriptionData));
 	let deleteTransactionText = $state('');
 	let deleteTransactionId = $state(null);
 	let deleteModalOpen = $state(false);
+
+	// get category id from match
+	const getCatId = (match) => {
+		if (Array.isArray(match) && match.length > 0) {
+			return match[0].cat_id;
+		}
+	};
 
 	// get description list for autocomplete from description data
 	const getAutocompleteData = (data) => data.map(d => d.descript);
@@ -44,16 +48,6 @@
 	const getMatch = (descript) => {
 		return descriptionData.filter(row => row.descript == descript);
 	}
-
-	// load transactions and userid on first load
-	onMount(async () => {
-		transactions = await loadTransactionsByDate(selectedDate);
-		user_id = await getUserId();
-		categories = await loadCategories();
-		descriptionData = await getDescriptions();
-		console.log(descriptionData);
-		console.log(autocompleteData);
-	});
 
 	// update daily totals when transaction changes
 	const updateDailyTotals = () => {
@@ -73,31 +67,10 @@
 		updateDailyTotals();
 	});
 
-	// update when description is selected
-	// $effect(() => {
-	// 	if (description && description !== '') {
-	// 		selectedMatch = descriptionData.filter((row) => {
-	// 			row.descript
-	// 		})
-	// 		.category_id;
-	// 		description = selectedMatch.description;
-	// 	}
-	// });
-
 	// add a new transaction to db and update state
 	const addTransaction = async (e) => {
-		console.log({
-					tr_type,
-					category_id,
-					description,
-					amount,
-					date: selectedDate,
-					user_id
-				});
-				return
 		e.preventDefault();
 		if (!description || !amount) return;
-		
 		const { data, error } = await supabase
 			.from('transactions')
 			.insert([
@@ -107,7 +80,8 @@
 					description,
 					amount,
 					date: selectedDate,
-					user_id
+					user_id,
+					source: 'userInput'
 				}
 			])
 			.select();
@@ -143,11 +117,6 @@
 		updateDailyTotals();
 	};
 
-	// autocomplete description and category
-	const autocomplete = () => {
-		console.log('autocomplete');
-		matches = autocompleteData.filter((item) => item.description.includes(description));
-	};
 </script>
 
 <!-- daily totals -->
@@ -184,14 +153,12 @@
 				name="svelecte"
 				options={autocompleteData}
 				bind:value={description}
-				onChange={(s) => console.log(s)}
 				creatable={true}
 				creatablePrefix=""
 				allowEditing={true}
 				keepCreated={false}
 				required
-				placeholder="description"
-
+				placeholder="Description"
 			/>
 		</div>
 		<div class="hstack gap-2">
@@ -199,8 +166,8 @@
 				<option value="income">Income</option>
 				<option value="expense" selected>Expense</option>
 			</Input>
-			<Input type="select" bind:value={category_id} bsSize="sm">
-				<option disabled selected value="">Category</option>
+			<Input type="select" bind:this={inputCategory} bind:value={category_id} bsSize="sm">
+				<option disabled selected value="category">Category</option>
 				{#each categories as c}
 				<option value={c.id}>{c.category_name}</option>
 				{/each}
@@ -231,10 +198,3 @@
 		</Button>
 	</ModalFooter>
 </Modal>
-
-<style>
-	/* .autocomplete {
-		border: 0 !important;
-		width: 100%;
-	} */
-</style>

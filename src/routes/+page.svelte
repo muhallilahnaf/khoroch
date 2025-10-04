@@ -1,5 +1,5 @@
 <script>
-	import { supabase, fetchSession } from '$lib/supabaseClient';
+	import { supabase, fetchSession, loadCategories, getDescriptions } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
 	import Authentication from '$lib/components/Authentication.svelte';
 	import { range, months, getDateString, getDayName, getMonthName } from '$lib/helpers';
@@ -18,6 +18,9 @@
 
 	// Auth state
 	let session = $state(null);
+	let user_id = $derived(session?.user?.id);
+	let categories = $state([]);
+	let descriptionData = $state([]);
 
 	// Listen for auth changes
 	onMount(async () => {
@@ -25,6 +28,8 @@
 		supabase.auth.onAuthStateChange((_event, currentSession) => {
 			session = currentSession;
 		});
+		categories = await loadCategories();
+		descriptionData = await getDescriptions();
 	});
 
 	// go to previous or next date
@@ -104,7 +109,7 @@
 			</div>
 
 			{#if level === 'day'}
-				<DayView {selectedDate} />
+				<DayView {selectedDate} {user_id} {categories} {descriptionData} />
 			{:else if level === 'month'}
 				<MonthView {selectedMonth} {selectedYear} />
 			{:else if level === 'year'}
