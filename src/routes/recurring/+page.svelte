@@ -1,5 +1,5 @@
 <script>
-	import { supabase, fetchSession, getUserId } from '$lib/supabaseClient';
+	import { supabase, fetchSession, getUserId, loadCategories } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
 	import Authentication from '$lib/components/Authentication.svelte';
 	import Header from '$lib/components/Header.svelte';
@@ -27,6 +27,8 @@
 	let description = $state('');
 	let amount = $state('');
 	let dayOfMonth = $state('');
+	let categories = $state([]);
+	let category_id = $state(null);
 	let deleteTransactionText = $state('');
 	let deleteTransactionId = $state(null);
 	let deleteModalOpen = $state(false);
@@ -41,6 +43,7 @@
 		supabase.auth.onAuthStateChange((_event, currentSession) => {
 			session = currentSession;
 		});
+		categories = await loadCategories();
 	});
 
 	// load recurring transactions
@@ -59,19 +62,17 @@
 	async function addRecurringTransaction(e) {
 		e.preventDefault();
 		if (!description || !amount || !dayOfMonth) return;
-
 		const { data, error } = await supabase
 			.from('recurring_transactions')
-			.insert([{ tr_type, description, amount, day_of_month: dayOfMonth, user_id }])
+			.insert([{ tr_type, description, amount, day_of_month: dayOfMonth, user_id, category_id }])
 			.select();
-
 		if (!error && data) {
 			transactions = [data[0], ...transactions];
 			description = '';
 			amount = '';
 			dayOfMonth = '';
+			category_id = null;
 		}
-
 		if (error) console.log(error);
 	}
 
@@ -125,6 +126,7 @@
 						<thead>
 							<tr>
 								<th>Type</th>
+								<th>Category</th>
 								<th>Description</th>
 								<th>Next recurring date</th>
 								<th>Amount</th>
@@ -135,6 +137,7 @@
 							{#each transactions as t}
 								<tr>
 									<td>{t.tr_type === 'income' ? '+' : '-'}</td>
+									<td>{t.category_id}</td>
 									<td>{t.description}</td>
 									<td>{getNextRecurringDate(t.day_of_month)}</td>
 									<td>
@@ -164,6 +167,12 @@
 						<option value="expense" selected>Expense</option>
 					</Input>
 					<Input placeholder="description" bind:value={description} bsSize="sm" required />
+					<Input type="select" bind:value={category_id} bsSize="sm">
+						<option disabled selected value="category">Category</option>
+						{#each categories as c}
+						<option value={c.id}>{c.category_name}</option>
+						{/each}
+					</Input>
 					<Input type="number" bsSize="sm" placeholder="amount" bind:value={amount} required />
 					<div>
 						<InputGroup bsSize="sm" style="flex-wrap: nowrap;">

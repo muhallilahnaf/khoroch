@@ -166,7 +166,7 @@
 				<option value="income">Income</option>
 				<option value="expense" selected>Expense</option>
 			</Input>
-			<Input type="select" bind:this={inputCategory} bind:value={category_id} bsSize="sm">
+			<Input type="select" bind:value={category_id} bsSize="sm">
 				<option disabled selected value="category">Category</option>
 				{#each categories as c}
 				<option value={c.id}>{c.category_name}</option>
