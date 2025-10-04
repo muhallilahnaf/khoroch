@@ -5,10 +5,17 @@
 	import { getSumCategoryForYear, getSumForYear } from '$lib/aggregations';
 	import { Progress, Table } from '@sveltestrap/sveltestrap';
 	import Chart from './Chart.svelte';
+	import AirDatepicker from 'air-datepicker';
+	import 'air-datepicker/air-datepicker.css';
+	import localeEn from 'air-datepicker/locale/en';
 
-	let { selectedYear } = $props();
 
+	// year picker object
+	let pickerObj;
+	
 	// states
+	let pickerElement = $state(undefined);
+	let selectedYear = $state(new Date().getFullYear()); // current year as default
 	let user_id = $state(null);
 	let yearlyIncome = $state(0);
 	let yearlyExpense = $state(0);
@@ -38,6 +45,20 @@
 		monthlyAvgExpense = (yearlyExpense / (currentMonth + 1)).toFixed(0);
 	};
 
+	onMount(() => {
+		pickerObj = new AirDatepicker(pickerElement, {
+			locale: localeEn,
+			view: 'years',
+			minView: 'years',
+			dateFormat: 'yyyy',
+			onSelect: ({date, formattedDate}) => {
+				console.log(formattedDate)
+				selectedYear = formattedDate;
+				pickerObj.hide()
+			}
+		});
+	})
+
 	// update when date changes
 	$effect(async () => {
 		await loadTransactionsByYear(selectedYear);
@@ -63,6 +84,8 @@
 </script>
 
 <!-- yearly totals -->
+<input bind:this={pickerElement} />
+
 <div class="mb-4 p-2 border">
 	<p class="lead">{selectedYear} Summary</p>
 	<p class="m-0">Income: <span class="text-success">{yearlyIncome}</span></p>

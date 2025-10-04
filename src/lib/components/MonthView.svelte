@@ -5,10 +5,18 @@
 	import Chart from '$lib/components/Chart.svelte';
 	import { getSumCategoryForMonth } from '$lib/aggregations';
 	import { months, monthsFull } from '$lib/helpers';
+	import AirDatepicker from 'air-datepicker';
+	import 'air-datepicker/air-datepicker.css';
+	import localeEn from 'air-datepicker/locale/en';
 
-	let { selectedMonth, selectedYear } = $props();
+	// month picker object
+	let pickerObj;
 
 	// states
+	let pickerElement = $state(undefined);
+	let selectedMonthYear = $state(getCurrentMonthYear()); // current month as default
+	let monthNumber = $derived(parseInt(selectedMonthYear.split('-')[1]))
+	let yearNumber = $derived(parseInt(selectedMonthYear.split('-')[0]))
 	let user_id = $state(null);
 	let monthlyIncome = $state(0);
 	let monthlyExpense = $state(0);
@@ -18,7 +26,28 @@
 	let transactions = $state([]);
 	let dataSumCategory = $state([]);
 	let chartData = $derived(getChartData(dataSumCategory));
-	let monthName = $derived(monthsFull[months.indexOf(selectedMonth)]);
+	let monthName = $derived(monthsFull[monthNumber-1]);
+
+	const getCurrentMonthYear = () => {
+		const today = new Date()
+		const year = today.getFullYear()
+		const month = today.getMonth() + 1
+		return `${year}-${month}`
+	}
+
+	onMount(() => {
+		pickerObj = new AirDatepicker(pickerElement, {
+			locale: localeEn,
+			view: 'months',
+			minView: 'months',
+			dateFormat: 'yyyy-MM',
+			onSelect: ({date, formattedDate}) => {
+				console.log(formattedDate)
+				selectedMonthYear = formattedDate;
+				pickerObj.hide()
+			}
+		});
+	})
 
 	// update monthly totals when transaction changes
 	const updateMonthlyTotals = () => {
@@ -40,22 +69,21 @@
 		const today = new Date();
 		const currentMonth = today.getMonth();
 		const lastDay = new Date(today.getFullYear(), currentMonth + 1, 0).getDate();
-		if (months.indexOf(selectedMonth) === currentMonth) {
+		if (monthNumber-1 === currentMonth) {
 			const currentDay = today.getDate();
 			dailyAvgExpense = expenseCount !== 0 ? (totalExpense / currentDay).toFixed(0) : '0';
 			const daysRemaining = lastDay - currentDay;
 			dailyAvgRemaining = daysRemaining !== 0 ? (monthlyRemaining / daysRemaining).toFixed(0) : '0';
-		} else if (months.indexOf(selectedMonth) < currentMonth) {
+		} else if (monthNumber-1 < currentMonth) {
 			dailyAvgExpense = expenseCount !== 0 ? (totalExpense / lastDay).toFixed(0) : '0';
 		}
 	};
 
 	// update when date changes
 	$effect(async () => {
-		transactions = await loadTransactionsByMonth(selectedMonth, selectedYear);
+		transactions = await loadTransactionsByMonth(monthNumber, yearNumber);
 		updateMonthlyTotals();
-		const monthNumber = months.indexOf(selectedMonth) + 1;
-		dataSumCategory = await getSumCategoryForMonth(monthNumber, selectedYear);
+		dataSumCategory = await getSumCategoryForMonth(monthNumber, yearNumber);
 	});
 
 	const getChartData = (data) => {		
@@ -76,6 +104,8 @@
 </script>
 
 <!-- monthly totals -->
+ <input bind:this={pickerElement} />
+ 
 <div class="mb-4 p-2 border">
 	<p class="lead">{monthName} Summary</p>
 	<p class="m-0">Income: <span class="text-success">{monthlyIncome}</span></p>

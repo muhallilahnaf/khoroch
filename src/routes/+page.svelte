@@ -9,13 +9,10 @@
 	import Header from '$lib/components/Header.svelte';
 	import { Container, Button, Input, InputGroupText, InputGroup } from '@sveltestrap/sveltestrap';
 
+	
 	// View state
 	let level = $state('day');
-	let selectedDate = $state(getDateString()); // today as default
-	let day = $derived(getDayName(selectedDate));
-	let selectedMonth = $state(getMonthName()); // current month as default
-	let selectedYear = $state(new Date().getFullYear()); // current year as default
-
+	
 	// Auth state
 	let session = $state(null);
 	let user_id = $derived(session?.user?.id);
@@ -62,58 +59,14 @@
 						<option value="year">Year</option>
 					</Input>
 				</div>
-
-				<!-- date/month/year select -->
-				<div>
-					{#if level === 'day'}
-						<div class="hstack gap-2">
-							<div>
-								<Button bsSize="sm" outline onclick={() => gotoPrevNextDay('prev')}>«</Button>
-							</div>
-							<InputGroup>
-								<InputGroupText style="width: 9rem">{day}</InputGroupText>
-								<Input type="date" bind:value={selectedDate} />
-							</InputGroup>
-							<div>
-								<Button bsSize="sm" outline onclick={() => gotoPrevNextDay('next')}>»</Button>
-							</div>
-						</div>
-					{:else if level === 'month'}
-						<div class="hstack gap-2">
-							{#each months as m}
-								<Button
-									outline
-									bsSize="sm"
-									color={selectedMonth === m ? 'primary' : 'secondary'}
-									onclick={() => (selectedMonth = m)}
-								>
-									{m}
-								</Button>
-							{/each}
-						</div>
-					{:else if level === 'year'}
-						<div class="hstack gap-2">
-							{#each range(2020, 2030, 1) as y}
-								<Button
-									outline
-									bsSize="sm"
-									color={selectedYear === y ? 'primary' : 'secondary'}
-									onclick={() => (selectedYear = y)}
-								>
-									{y}
-								</Button>
-							{/each}
-						</div>
-					{/if}
-				</div>
 			</div>
 
 			{#if level === 'day'}
-				<DayView {selectedDate} {user_id} {categories} {descriptionData} />
+				<DayView {user_id} {categories} {descriptionData} />
 			{:else if level === 'month'}
-				<MonthView {selectedMonth} {selectedYear} />
+				<MonthView />
 			{:else if level === 'year'}
-				<YearView {selectedYear} />
+				<YearView />
 			{/if}
 		{/if}
 	</main>

@@ -6,6 +6,7 @@
 		loadTransactionsByDate,
 		getDescriptions
 	} from '$lib/supabaseClient';
+	import { getDateString } from '$lib/helpers';
 	import { onMount } from 'svelte';
 	import Svelecte from 'svelecte';
 	import {
@@ -17,10 +18,19 @@
 		Input,
 		Form
 	} from '@sveltestrap/sveltestrap';
+	import AirDatepicker from 'air-datepicker';
+	import 'air-datepicker/air-datepicker.css';
+	import localeEn from 'air-datepicker/locale/en';
 
-	let { selectedDate, user_id, categories, descriptionData } = $props();
+	let { user_id, categories, descriptionData } = $props();
+
+	// date picker object
+	let pickerObj;
 
 	// states
+	let pickerElement = $state(undefined);
+	let selectedDate = $state(getDateString()); // today as default
+	let day = $derived(getDayName(selectedDate));
 	let dailyIncome = $state(0);
 	let dailyExpense = $state(0);
 	let transactions = $state([]);
@@ -34,6 +44,21 @@
 	let deleteTransactionId = $state(null);
 	let deleteModalOpen = $state(false);
 
+	onMount(() => {
+		pickerObj = new AirDatepicker(pickerElement, {
+			locale: localeEn,
+			view: 'days',
+			minView: 'days',
+			dateFormat: 'yyyy-MM-dd',
+			onSelect: ({ date, formattedDate }) => {
+				console.log(formattedDate);
+				selectedDate = formattedDate;
+				day = date.split(' ')[0];
+				pickerObj.hide();
+			}
+		});
+	});
+
 	// get category id from match
 	const getCatId = (match) => {
 		if (Array.isArray(match) && match.length > 0) {
@@ -42,12 +67,12 @@
 	};
 
 	// get description list for autocomplete from description data
-	const getAutocompleteData = (data) => data.map(d => d.descript);
+	const getAutocompleteData = (data) => data.map((d) => d.descript);
 
 	// get matching description and category id from autocomplete
 	const getMatch = (descript) => {
-		return descriptionData.filter(row => row.descript == descript);
-	}
+		return descriptionData.filter((row) => row.descript == descript);
+	};
 
 	// update daily totals when transaction changes
 	const updateDailyTotals = () => {
@@ -116,10 +141,24 @@
 		deleteModalOpen = false;
 		updateDailyTotals();
 	};
-
 </script>
 
 <!-- daily totals -->
+<input bind:this={pickerElement} />
+
+<!-- <div class="hstack gap-2">
+	<div>
+		<Button bsSize="sm" outline onclick={() => gotoPrevNextDay('prev')}>«</Button>
+	</div>
+	<InputGroup>
+		<InputGroupText style="width: 9rem">{day}</InputGroupText>
+		<Input type="date" bind:value={selectedDate} />
+	</InputGroup>
+	<div>
+		<Button bsSize="sm" outline onclick={() => gotoPrevNextDay('next')}>»</Button>
+	</div>
+</div> -->
+
 <div class="mb-4 p-2 border">
 	<p class="lead">Today's Totals</p>
 	<div class="hstack gap-3">
@@ -137,7 +176,9 @@
 				<span class={t.tr_type === 'income' ? 'text-success ms-auto' : 'text-danger ms-auto'}>
 					{t.amount}
 				</span>
-				<Button bsSize="sm" outline color="danger" onclick={() => openDeleteModal(t.id)}>Delete</Button>
+				<Button bsSize="sm" outline color="danger" onclick={() => openDeleteModal(t.id)}
+					>Delete</Button
+				>
 			</div>
 		{/each}
 	{:else}
@@ -169,7 +210,7 @@
 			<Input type="select" bind:value={category_id} bsSize="sm">
 				<option disabled selected value="category">Category</option>
 				{#each categories as c}
-				<option value={c.id}>{c.category_name}</option>
+					<option value={c.id}>{c.category_name}</option>
 				{/each}
 			</Input>
 			<Input type="number" bsSize="sm" placeholder="amount" bind:value={amount} required />
@@ -181,10 +222,12 @@
 <!-- Delete Modal -->
 <Modal isOpen={deleteModalOpen} bsSize="sm">
 	<ModalHeader
-		toggle={() => {deleteModalOpen = false;}}
+		toggle={() => {
+			deleteModalOpen = false;
+		}}
 	>
 		Delete transaction
-		</ModalHeader>
+	</ModalHeader>
 	<ModalBody>
 		Are you sure you want to delete the transaction: {deleteTransactionText}?
 	</ModalBody>
@@ -192,7 +235,9 @@
 		<Button color="primary" onclick={deleteTransaction}>Yes</Button>
 		<Button
 			color="secondary"
-			onclick={() => {deleteModalOpen = false;}}
+			onclick={() => {
+				deleteModalOpen = false;
+			}}
 		>
 			Cancel
 		</Button>

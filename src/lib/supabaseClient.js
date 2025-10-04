@@ -3,7 +3,6 @@ import {
   PUBLIC_SUPABASE_URL,
   PUBLIC_SUPABASE_PUBLISHABLE_KEY
 } from '$env/static/public';
-import { months } from './helpers';
 import { getSumForMonth } from './aggregations';
 
 
@@ -43,8 +42,7 @@ export const loadTransactionsByDate = async (date) => {
 };
 
 // load transactions by month
-export const loadTransactionsByMonth = async (month, year) => {
-  const monthNumber = months.indexOf(month) + 1;
+export const loadTransactionsByMonth = async (monthNumber, year) => {
   const data = await getSumForMonth(monthNumber, year);
   return data;
 };
