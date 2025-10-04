@@ -68,3 +68,17 @@ export async function getSumCategoryForMonth(monthNumber, year) {
   }
   return data;
 };
+
+
+export async function assignCategories(payload) {
+  const { data, error } = await supabase.rpc(
+    'assign_categories', 
+    { payload: JSON.stringify(payload) }
+  );
+  // cols: category_id, description
+  if (error) {
+    console.log(error)
+    return [];
+  }
+  return data;
+};

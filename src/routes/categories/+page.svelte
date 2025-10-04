@@ -1,26 +1,29 @@
 <script>
-	import { supabase, fetchSession, getUserId, loadCategories } from '$lib/supabaseClient';
+	import { supabase, fetchSession, getUserId, loadCategories, getDescriptions } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
 	import Authentication from '$lib/components/Authentication.svelte';
 	import Header from '$lib/components/Header.svelte';
 	import ErrorAlert from '$lib/components/ErrorAlert.svelte';
 	import { Container, Navbar, Form, Button, Input } from '@sveltestrap/sveltestrap';
+	import { assignCategories } from '$lib/aggregations';
 
 	// states
 	let session = $state(null);
 	let user_id = $state(null);
 	let category_name = $state('');
 	let categories = $state([]);
+	let descriptionData = $state([]);
 	let message = $state('');
 
 	// Listen for auth changes
 	onMount(async () => {
 		session = await fetchSession();
 		user_id = await getUserId();
-		categories = await loadCategories();
 		supabase.auth.onAuthStateChange((_event, currentSession) => {
 			session = currentSession;
 		});
+		categories = await loadCategories();
+		descriptionData = await getDescriptions();
 	});
 
 	// add a new category to db and update state
@@ -43,6 +46,19 @@
 			}
 			console.log(error);
 		}
+	}
+
+	// (re)assign categories to descriptions
+	const updateCategories = async () => {
+		let payload = [];
+		const selects = document.querySelectorAll('#assign-cat select');
+		selects.forEach(s => {
+			payload.push({ category_id: s.value, description: s.name });
+			console.log(`${s.name} => ${s.value}`);
+		})
+		const data = await assignCategories(payload);
+		console.log(data);
+		descriptionData = await getDescriptions();
 	}
 </script>
 
@@ -71,6 +87,29 @@
 					{/each}
 				{:else}
 					<p class="text-secondary">No records yet</p>
+				{/if}
+			</div>
+
+			<!-- Assign categories to descriptions -->
+			<div class="overflow-y-auto mb-4" id="assign-cat">
+				{#if descriptionData.length > 0}
+					{#each descriptionData as d}
+						<div class="d-flex justify-content-between mb-1">
+							<div>
+								<span>{d.descript}</span>
+							</div>
+							<div>
+								<Input bsSize="sm" type="select" name={d.descript}>
+									{#each categories as c}
+										<option value={c.id} selected={c.id == d.cat_id}>{c.category_name}</option>
+									{/each}
+								</Input>
+							</div>
+						</div>
+					{/each}
+					<Button bsSize="sm" onclick={updateCategories}>Update</Button>
+				{:else}
+					<p class="text-secondary">No descriptions yet</p>
 				{/if}
 			</div>
 

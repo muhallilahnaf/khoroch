@@ -9,10 +9,8 @@
 	import { Container, Input } from '@sveltestrap/sveltestrap';
 
 	
-	// View state
+	// states
 	let level = $state('day');
-	
-	// Auth state
 	let session = $state(null);
 	let user_id = $derived(session?.user?.id);
 	let categories = $state([]);
