@@ -1,7 +1,7 @@
 <script>
 	import { supabase, loadTransactionsByMonth } from '$lib/supabaseClient';
 	import { onMount } from 'svelte';
-	import { Table, Progress } from '@sveltestrap/sveltestrap';
+	import { Table, Progress, Input, InputGroup, InputGroupText, Button } from '@sveltestrap/sveltestrap';
 	import Chart from '$lib/components/Chart.svelte';
 	import { getSumCategoryForMonth } from '$lib/aggregations';
 	import { months, monthsFull } from '$lib/helpers';
@@ -12,8 +12,14 @@
 	// month picker object
 	let pickerObj;
 
+	const getCurrentMonthYear = () => {
+		const today = new Date()
+		const year = today.getFullYear()
+		const month = today.getMonth() + 1
+		return `${year}-${month}`
+	}
+
 	// states
-	let pickerElement = $state(undefined);
 	let selectedMonthYear = $state(getCurrentMonthYear()); // current month as default
 	let monthNumber = $derived(parseInt(selectedMonthYear.split('-')[1]))
 	let yearNumber = $derived(parseInt(selectedMonthYear.split('-')[0]))
@@ -28,15 +34,10 @@
 	let chartData = $derived(getChartData(dataSumCategory));
 	let monthName = $derived(monthsFull[monthNumber-1]);
 
-	const getCurrentMonthYear = () => {
-		const today = new Date()
-		const year = today.getFullYear()
-		const month = today.getMonth() + 1
-		return `${year}-${month}`
-	}
+	
 
 	onMount(() => {
-		pickerObj = new AirDatepicker(pickerElement, {
+		pickerObj = new AirDatepicker('#picker', {
 			locale: localeEn,
 			view: 'months',
 			minView: 'months',
@@ -44,7 +45,7 @@
 			onSelect: ({date, formattedDate}) => {
 				console.log(formattedDate)
 				selectedMonthYear = formattedDate;
-				pickerObj.hide()
+				if (pickerObj.visible) pickerObj.hide()
 			}
 		});
 	})
@@ -101,11 +102,38 @@
 	const chartOptions = {
 		responsive: true,
 	};
+
+	// go to previous or next month
+	const gotoPrevNext = (direction) => {
+		const date = new Date(selectedMonthYear);
+		const targetDate = new Date(selectedMonthYear);
+		if (direction === 'prev') {
+			targetDate.setMonth(date.getMonth() - 1);
+		}
+		if (direction === 'next') {
+			targetDate.setMonth(date.getMonth() + 1);
+		}
+		pickerObj.selectDate(targetDate);
+		selectedMonthYear = `${targetDate.getFullYear()}-${targetDate.getMonth()+1}`;
+	};
 </script>
 
-<!-- monthly totals -->
- <input bind:this={pickerElement} />
+
+<!-- month picker -->
+<div class="hstack gap-2 my-2">
+	<div>
+		<Button bsSize="sm" outline onclick={() => gotoPrevNext('prev')}>«</Button>
+	</div>
+	<InputGroup>
+		<InputGroupText style="width: 9rem">{monthName}</InputGroupText>
+		<Input id="picker" type='text' bsSize="sm" readonly value={selectedMonthYear} />
+	</InputGroup>
+	<div>
+		<Button bsSize="sm" outline onclick={() => gotoPrevNext('next')}>»</Button>
+	</div>
+</div>
  
+<!-- monthly totals -->
 <div class="mb-4 p-2 border">
 	<p class="lead">{monthName} Summary</p>
 	<p class="m-0">Income: <span class="text-success">{monthlyIncome}</span></p>

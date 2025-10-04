@@ -6,7 +6,7 @@
 		loadTransactionsByDate,
 		getDescriptions
 	} from '$lib/supabaseClient';
-	import { getDateString } from '$lib/helpers';
+	import { getDateString, getDayName } from '$lib/helpers';
 	import { onMount } from 'svelte';
 	import Svelecte from 'svelecte';
 	import {
@@ -16,7 +16,9 @@
 		ModalFooter,
 		ModalHeader,
 		Input,
-		Form
+		Form,
+		InputGroupText, 
+		InputGroup
 	} from '@sveltestrap/sveltestrap';
 	import AirDatepicker from 'air-datepicker';
 	import 'air-datepicker/air-datepicker.css';
@@ -28,7 +30,6 @@
 	let pickerObj;
 
 	// states
-	let pickerElement = $state(undefined);
 	let selectedDate = $state(getDateString()); // today as default
 	let day = $derived(getDayName(selectedDate));
 	let dailyIncome = $state(0);
@@ -45,16 +46,16 @@
 	let deleteModalOpen = $state(false);
 
 	onMount(() => {
-		pickerObj = new AirDatepicker(pickerElement, {
+		pickerObj = new AirDatepicker('#picker', {
 			locale: localeEn,
 			view: 'days',
 			minView: 'days',
 			dateFormat: 'yyyy-MM-dd',
 			onSelect: ({ date, formattedDate }) => {
-				console.log(formattedDate);
+				console.log(date);
 				selectedDate = formattedDate;
-				day = date.split(' ')[0];
-				pickerObj.hide();
+				day = getDayName(date.toISOString());
+				if (pickerObj.visible) pickerObj.hide();
 			}
 		});
 	});
@@ -141,24 +142,38 @@
 		deleteModalOpen = false;
 		updateDailyTotals();
 	};
+
+	// go to previous or next date
+	const gotoPrevNextDay = (direction) => {
+		const date = new Date(selectedDate);
+		const targetDate = new Date(selectedDate);
+		if (direction === 'prev') {
+			targetDate.setDate(date.getDate() - 1);
+		}
+		if (direction === 'next') {
+			targetDate.setDate(date.getDate() + 1);
+		}
+		pickerObj.selectDate(targetDate);
+		selectedDate = getDateString(targetDate);
+	};
 </script>
 
-<!-- daily totals -->
-<input bind:this={pickerElement} />
 
-<!-- <div class="hstack gap-2">
+<!-- date picker -->
+<div class="hstack gap-2 my-2">
 	<div>
 		<Button bsSize="sm" outline onclick={() => gotoPrevNextDay('prev')}>«</Button>
 	</div>
 	<InputGroup>
 		<InputGroupText style="width: 9rem">{day}</InputGroupText>
-		<Input type="date" bind:value={selectedDate} />
+		<Input id="picker" type='text' bsSize="sm" readonly value={selectedDate} />
 	</InputGroup>
 	<div>
 		<Button bsSize="sm" outline onclick={() => gotoPrevNextDay('next')}>»</Button>
 	</div>
-</div> -->
+</div>
 
+<!-- daily totals -->
 <div class="mb-4 p-2 border">
 	<p class="lead">Today's Totals</p>
 	<div class="hstack gap-3">
@@ -189,7 +204,7 @@
 <!-- Input Form -->
 <div class="position-absolute top-100 start-50 translate-middle w-100 shadow">
 	<Form class="p-2 border rounded" onsubmit={addTransaction}>
-		<div class="hstack gap-2">
+		<div class="hstack gap-2 mb-1">
 			<Svelecte
 				name="svelecte"
 				options={autocompleteData}

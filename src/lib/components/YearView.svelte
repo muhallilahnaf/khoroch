@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { months, monthsFull } from '$lib/helpers';
 	import { getSumCategoryForYear, getSumForYear } from '$lib/aggregations';
-	import { Progress, Table } from '@sveltestrap/sveltestrap';
+	import { Progress, Table, Input, Button } from '@sveltestrap/sveltestrap';
 	import Chart from './Chart.svelte';
 	import AirDatepicker from 'air-datepicker';
 	import 'air-datepicker/air-datepicker.css';
@@ -14,7 +14,6 @@
 	let pickerObj;
 	
 	// states
-	let pickerElement = $state(undefined);
 	let selectedYear = $state(new Date().getFullYear()); // current year as default
 	let user_id = $state(null);
 	let yearlyIncome = $state(0);
@@ -46,7 +45,7 @@
 	};
 
 	onMount(() => {
-		pickerObj = new AirDatepicker(pickerElement, {
+		pickerObj = new AirDatepicker('#picker', {
 			locale: localeEn,
 			view: 'years',
 			minView: 'years',
@@ -54,7 +53,7 @@
 			onSelect: ({date, formattedDate}) => {
 				console.log(formattedDate)
 				selectedYear = formattedDate;
-				pickerObj.hide()
+				if (pickerObj.visible) pickerObj.hide()
 			}
 		});
 	})
@@ -81,11 +80,36 @@
 	const chartOptions = {
 		responsive: true,
 	};
+
+	// go to previous or next year
+	const gotoPrevNext = (direction) => {
+		let targetDate;
+		if (direction === 'prev') {
+			targetDate = new Date(`${selectedYear - 1}-01-01`);
+			selectedYear = parseInt(selectedYear) - 1;
+		}
+		if (direction === 'next') {
+			targetDate = new Date(`${selectedYear + 1}-01-01`);
+			selectedYear = parseInt(selectedYear) + 1;
+		}
+		pickerObj.selectDate(targetDate);
+	};
+
 </script>
 
-<!-- yearly totals -->
-<input bind:this={pickerElement} />
 
+<!-- year picker -->
+<div class="hstack gap-2 my-2">
+	<div>
+		<Button bsSize="sm" outline onclick={() => gotoPrevNext('prev')}>«</Button>
+	</div>
+	<Input id="picker" type='text' bsSize="sm" readonly value={selectedYear} />
+	<div>
+		<Button bsSize="sm" outline onclick={() => gotoPrevNext('next')}>»</Button>
+	</div>
+</div>
+
+<!-- yearly totals -->
 <div class="mb-4 p-2 border">
 	<p class="lead">{selectedYear} Summary</p>
 	<p class="m-0">Income: <span class="text-success">{yearlyIncome}</span></p>
